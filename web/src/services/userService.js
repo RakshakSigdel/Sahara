@@ -4,6 +4,7 @@ import {
   getDocs,
   getDoc,
   doc,
+  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -22,13 +23,15 @@ export async function createUser(uid, profileData) {
     profileData;
 
   try {
-    await updateDoc(doc(db, USERS_COLLECTION, uid), {
+    await setDoc(doc(db, USERS_COLLECTION, uid), {
+      uid,
       fullName,
       licenseNo,
       hospitalName,
       speciality,
       phone,
       email,
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
