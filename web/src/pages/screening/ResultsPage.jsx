@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -247,7 +247,7 @@ export default function ResultsPage() {
             <div className="rounded-xl border border-warning/25 bg-warning/5 p-5 flex items-start gap-3">
               <AlertTriangle size={18} className="text-warning shrink-0 mt-0.5" />
               <p className="text-xs text-text-secondary leading-relaxed">
-                <b>Important:</b> EchoMind is a screening tool only, not a medical diagnosis. These results should be discussed
+                <b>Important:</b> Sahara is a screening tool only, not a medical diagnosis. These results should be discussed
                 with a qualified healthcare professional. Do not make medical decisions based solely on this screening.
               </p>
             </div>

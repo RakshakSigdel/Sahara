@@ -1,4 +1,4 @@
-# EchoMind — AI Voice Cognitive Screening Platform
+# Sahara — AI Voice Cognitive Screening Platform
 
 > A modern, accessible web application for voice-based cognitive health screening using AI analysis.
 
@@ -64,14 +64,14 @@ src/
 
 ## 🎨 Design System
 
-| Token | Value |
-|-------|-------|
-| Primary | `#0A7C7C` (Deep Teal) |
-| Secondary | `#A8D5B5` (Sage) |
-| Accent | `#E07A5F` (Coral) |
+| Token        | Value                 |
+| ------------ | --------------------- |
+| Primary      | `#0A7C7C` (Deep Teal) |
+| Secondary    | `#A8D5B5` (Sage)      |
+| Accent       | `#E07A5F` (Coral)     |
 | Text Primary | `#1A2E35` (Navy Dark) |
-| Font UI | Inter |
-| Font Data | JetBrains Mono |
+| Font UI      | Inter                 |
+| Font Data    | JetBrains Mono        |
 
 ## 🛠 Tech Stack
 
@@ -85,22 +85,22 @@ src/
 
 ## 📄 Route Map
 
-| Route | Page | Auth | Chrome |
-|-------|------|------|--------|
-| `/` | Landing | Public | ✅ |
-| `/learn` | Learn Hub | Public | ✅ |
-| `/auth/login` | Login | Public | ❌ |
-| `/auth/signup` | Signup | Public | ❌ |
-| `/auth/forgot-password` | Forgot Password | Public | ❌ |
-| `/auth/reset-password` | Reset Password | Public | ❌ |
-| `/dashboard` | Dashboard | Protected | ✅ |
-| `/history` | Test History | Protected | ✅ |
-| `/profile` | Profile Settings | Protected | ✅ |
-| `/screen/consent` | Consent | Protected | ❌ |
-| `/screen/select` | Test Selection | Protected | ✅ |
-| `/screen/record` | Recording | Protected | ❌ |
-| `/screen/processing` | AI Processing | Protected | ❌ |
-| `/screen/results` | Results | Protected | ✅ |
+| Route                   | Page             | Auth      | Chrome |
+| ----------------------- | ---------------- | --------- | ------ |
+| `/`                     | Landing          | Public    | ✅     |
+| `/learn`                | Learn Hub        | Public    | ✅     |
+| `/auth/login`           | Login            | Public    | ❌     |
+| `/auth/signup`          | Signup           | Public    | ❌     |
+| `/auth/forgot-password` | Forgot Password  | Public    | ❌     |
+| `/auth/reset-password`  | Reset Password   | Public    | ❌     |
+| `/dashboard`            | Dashboard        | Protected | ✅     |
+| `/history`              | Test History     | Protected | ✅     |
+| `/profile`              | Profile Settings | Protected | ✅     |
+| `/screen/consent`       | Consent          | Protected | ❌     |
+| `/screen/select`        | Test Selection   | Protected | ✅     |
+| `/screen/record`        | Recording        | Protected | ❌     |
+| `/screen/processing`    | AI Processing    | Protected | ❌     |
+| `/screen/results`       | Results          | Protected | ✅     |
 
 ## 🔧 Environment Variables
 

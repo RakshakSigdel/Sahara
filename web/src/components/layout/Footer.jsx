@@ -1,27 +1,27 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Send, Brain, ArrowUpRight } from 'lucide-react';
-import { cn } from '../../utils/cn';
+﻿import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Send, Brain, ArrowUpRight } from "lucide-react";
+import { cn } from "../../utils/cn";
 
 const quickLinks = [
-  { to: '/about', label: 'About' },
-  { to: '/how-it-works', label: 'How It Works' },
-  { to: '/research', label: 'Research' },
-  { to: '/contact', label: 'Contact' },
+  { to: "/about", label: "About" },
+  { to: "/how-it-works", label: "How It Works" },
+  { to: "/research", label: "Research" },
+  { to: "/contact", label: "Contact" },
 ];
 
 const legalLinks = [
-  { to: '/privacy', label: 'Privacy Policy' },
-  { to: '/terms', label: 'Terms of Service' },
-  { to: '/disclaimer', label: 'Disclaimer' },
+  { to: "/privacy", label: "Privacy Policy" },
+  { to: "/terms", label: "Terms of Service" },
+  { to: "/disclaimer", label: "Disclaimer" },
 ];
 
 function Footer() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setEmail('');
+    setEmail("");
   };
 
   return (
@@ -35,8 +35,8 @@ function Footer() {
                 <Brain size={16} />
               </div>
               <span className="text-lg font-bold tracking-tight">
-                <span className="text-navy-dark">Echo</span>
-                <span className="text-deep-teal">Mind</span>
+                <span className="text-navy-dark">Sah</span>
+                <span className="text-deep-teal">ara</span>
               </span>
             </Link>
             <p className="text-sm text-text-muted leading-relaxed max-w-xs">
@@ -58,7 +58,10 @@ function Footer() {
                     className="group inline-flex items-center gap-1 text-sm text-text-secondary hover:text-deep-teal transition-colors duration-200"
                   >
                     {link.label}
-                    <ArrowUpRight size={12} className="opacity-0 -translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200" />
+                    <ArrowUpRight
+                      size={12}
+                      className="opacity-0 -translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200"
+                    />
                   </Link>
                 </li>
               ))}
@@ -78,7 +81,10 @@ function Footer() {
                     className="group inline-flex items-center gap-1 text-sm text-text-secondary hover:text-deep-teal transition-colors duration-200"
                   >
                     {link.label}
-                    <ArrowUpRight size={12} className="opacity-0 -translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200" />
+                    <ArrowUpRight
+                      size={12}
+                      className="opacity-0 -translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200"
+                    />
                   </Link>
                 </li>
               ))}
@@ -91,7 +97,8 @@ function Footer() {
               Stay Updated
             </h4>
             <p className="text-sm text-text-muted mb-4 leading-relaxed">
-              Get the latest insights on vocal biomarker research and cognitive health.
+              Get the latest insights on vocal biomarker research and cognitive
+              health.
             </p>
             <form onSubmit={handleSubmit} className="flex gap-2">
               <input
@@ -116,13 +123,17 @@ function Footer() {
         {/* Disclaimer + Bottom */}
         <div className="pt-8 border-t border-border/50">
           <p className="text-[11px] text-text-muted/70 leading-relaxed max-w-4xl mb-4">
-            <strong className="font-semibold text-text-muted">Disclaimer:</strong> EchoMind is a screening tool 
-            and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of a 
-            qualified healthcare provider. If you are in crisis, contact your local emergency services immediately.
+            <strong className="font-semibold text-text-muted">
+              Disclaimer:
+            </strong>{" "}
+            Sahara is a screening tool and is not a substitute for professional
+            medical advice, diagnosis, or treatment. Always seek the advice of a
+            qualified healthcare provider. If you are in crisis, contact your
+            local emergency services immediately.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-[11px] text-text-muted/50">
-              © {new Date().getFullYear()} EchoMind. All rights reserved.
+              © {new Date().getFullYear()} Sahara. All rights reserved.
             </p>
             <p className="text-[11px] text-text-muted/40">
               Made with care for families everywhere.
@@ -134,6 +145,6 @@ function Footer() {
   );
 }
 
-Footer.displayName = 'Footer';
+Footer.displayName = "Footer";
 export { Footer };
 export default Footer;

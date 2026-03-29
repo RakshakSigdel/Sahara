@@ -1,23 +1,39 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Mic, Square, Play, Pause, RotateCcw, ArrowRight, ArrowLeft,
-  AlertTriangle, Check, Clock, Brain, ChevronRight, Upload,
-  FileAudio, MicOff, Keyboard, ChevronUp, Volume2
-} from 'lucide-react';
-import { useSession } from '../../contexts/SessionContext';
-import { useDoctor } from '../../contexts/DoctorContext';
-import useAudioRecorder from '../../hooks/useAudioRecorder';
-import WaveformVisualizer from '../../components/shared/WaveformVisualizer';
-import AudioUploader from '../../components/features/screening/AudioUploader';
-import AudioPlayback from '../../components/features/screening/AudioPlayback';
-import Button from '../../components/ui/Button';
-import { cn } from '../../utils/cn';
+  X,
+  Mic,
+  Square,
+  Play,
+  Pause,
+  RotateCcw,
+  ArrowRight,
+  ArrowLeft,
+  AlertTriangle,
+  Check,
+  Clock,
+  Brain,
+  ChevronRight,
+  Upload,
+  FileAudio,
+  MicOff,
+  Keyboard,
+  ChevronUp,
+  Volume2,
+} from "lucide-react";
+import { useSession } from "../../contexts/SessionContext";
+import { useDoctor } from "../../contexts/DoctorContext";
+import useAudioRecorder from "../../hooks/useAudioRecorder";
+import WaveformVisualizer from "../../components/shared/WaveformVisualizer";
+import AudioUploader from "../../components/features/screening/AudioUploader";
+import AudioPlayback from "../../components/features/screening/AudioPlayback";
+import Button from "../../components/ui/Button";
+import { cn } from "../../utils/cn";
 
 function formatTime(s) {
   const m = Math.floor(s / 60);
-  return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  return `${m.toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
 /* ─────────────────────────────────────────────
@@ -26,7 +42,7 @@ function formatTime(s) {
 export default function ActiveSessionPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const { patients } = useDoctor();
+  const { patients, completeSession, addReport, currentDoctor } = useDoctor();
   const {
     activeSession: currentSession,
     currentQuestionIndex,
@@ -37,14 +53,15 @@ export default function ActiveSessionPage() {
     endSession,
     recordQuestion,
     analyzeRecording,
+    generateReport,
   } = useSession();
 
   // Audio recorder hook
   const recorder = useAudioRecorder();
 
   // Local state
-  const [inputMode, setInputMode] = useState('record'); // 'record' | 'upload'
-  const [recordingState, setRecordingState] = useState('ready'); // ready | recording | paused | complete
+  const [inputMode, setInputMode] = useState("record"); // 'record' | 'upload'
+  const [recordingState, setRecordingState] = useState("ready"); // ready | recording | paused | complete
   const [uploadedFile, setUploadedFile] = useState(null); // { file, blob, url, name }
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -57,6 +74,7 @@ export default function ActiveSessionPage() {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [micError, setMicError] = useState(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const patient = patients.find((p) => p.id === currentSession?.patientId);
   const questions = currentSession?.questions || [];
@@ -65,11 +83,11 @@ export default function ActiveSessionPage() {
   // Sync recorder state
   useEffect(() => {
     if (recorder.isRecording && !recorder.isPaused) {
-      setRecordingState('recording');
+      setRecordingState("recording");
     } else if (recorder.isRecording && recorder.isPaused) {
-      setRecordingState('paused');
+      setRecordingState("paused");
     } else if (recorder.audioBlob && !recorder.isRecording) {
-      setRecordingState('complete');
+      setRecordingState("complete");
     }
   }, [recorder.isRecording, recorder.isPaused, recorder.audioBlob]);
 
@@ -91,22 +109,22 @@ export default function ActiveSessionPage() {
 
   const stopRecording = useCallback(() => {
     recorder.stopRecording();
-    setRecordingState('complete');
+    setRecordingState("complete");
   }, [recorder]);
 
   const pauseRecording = useCallback(() => {
     recorder.pauseRecording();
-    setRecordingState('paused');
+    setRecordingState("paused");
   }, [recorder]);
 
   const resumeRecording = useCallback(() => {
     recorder.resumeRecording();
-    setRecordingState('recording');
+    setRecordingState("recording");
   }, [recorder]);
 
   const discardRecording = useCallback(() => {
     recorder.discardRecording();
-    setRecordingState('ready');
+    setRecordingState("ready");
     setAnalysisResult(null);
     setShowAnalysis(false);
   }, [recorder]);
@@ -121,19 +139,28 @@ export default function ActiveSessionPage() {
   }, [uploadedFile]);
 
   // Switch between record/upload modes
-  const handleModeSwitch = useCallback((targetMode) => {
-    const hasRecording = recordingState === 'recording' || recordingState === 'paused' || recordingState === 'complete';
-    const hasUpload = !!uploadedFile;
+  const handleModeSwitch = useCallback(
+    (targetMode) => {
+      const hasRecording =
+        recordingState === "recording" ||
+        recordingState === "paused" ||
+        recordingState === "complete";
+      const hasUpload = !!uploadedFile;
 
-    if ((hasRecording && targetMode === 'upload') || (hasUpload && targetMode === 'record')) {
-      setSwitchWarning(targetMode);
-    } else {
-      setInputMode(targetMode);
-    }
-  }, [recordingState, uploadedFile]);
+      if (
+        (hasRecording && targetMode === "upload") ||
+        (hasUpload && targetMode === "record")
+      ) {
+        setSwitchWarning(targetMode);
+      } else {
+        setInputMode(targetMode);
+      }
+    },
+    [recordingState, uploadedFile],
+  );
 
   const confirmModeSwitch = useCallback(() => {
-    if (switchWarning === 'upload') {
+    if (switchWarning === "upload") {
       discardRecording();
     } else {
       clearUpload();
@@ -146,14 +173,14 @@ export default function ActiveSessionPage() {
   const saveAndNext = useCallback(async () => {
     let blob, url, type;
 
-    if (inputMode === 'record' && recorder.audioBlob) {
+    if (inputMode === "record" && recorder.audioBlob) {
       blob = recorder.audioBlob;
       url = recorder.audioURL;
-      type = 'recorded';
-    } else if (inputMode === 'upload' && uploadedFile) {
+      type = "recorded";
+    } else if (inputMode === "upload" && uploadedFile) {
       blob = uploadedFile.blob;
       url = uploadedFile.url;
-      type = 'uploaded';
+      type = "uploaded";
     } else {
       return;
     }
@@ -174,13 +201,15 @@ export default function ActiveSessionPage() {
     try {
       let analysis;
       if (currentQ?.id) {
-        analysis = await analyzeRecording(currentQ.id);
+        analysis = await analyzeRecording(currentQ.id, blob);
       } else {
         await new Promise((r) => setTimeout(r, 1500));
         analysis = {
           speechRate: 110 + Math.floor(Math.random() * 50),
           pauseDuration: +(0.8 + Math.random() * 3).toFixed(1),
-          coherence: ['Good', 'Fair', 'Excellent'][Math.floor(Math.random() * 3)],
+          coherence: ["Good", "Fair", "Excellent"][
+            Math.floor(Math.random() * 3)
+          ],
         };
       }
       setAnalysisResult(analysis);
@@ -192,7 +221,7 @@ export default function ActiveSessionPage() {
     }
     setAnalyzing(false);
 
-    setQuestionStatuses((p) => ({ ...p, [currentQuestionIndex]: 'completed' }));
+    setQuestionStatuses((p) => ({ ...p, [currentQuestionIndex]: "completed" }));
 
     // Auto-advance after brief delay
     setTimeout(() => {
@@ -204,16 +233,23 @@ export default function ActiveSessionPage() {
       }
     }, 1200);
   }, [
-    inputMode, recorder.audioBlob, recorder.audioURL, uploadedFile,
-    currentQuestionIndex, currentQ, totalQuestions,
-    recordQuestion, analyzeRecording, goToQuestion,
+    inputMode,
+    recorder.audioBlob,
+    recorder.audioURL,
+    uploadedFile,
+    currentQuestionIndex,
+    currentQ,
+    totalQuestions,
+    recordQuestion,
+    analyzeRecording,
+    goToQuestion,
   ]);
 
   const resetForNewQuestion = useCallback(() => {
     recorder.discardRecording();
-    setRecordingState('ready');
+    setRecordingState("ready");
     clearUpload();
-    setInputMode('record');
+    setInputMode("record");
     setAnalysisResult(null);
     setShowAnalysis(false);
     setAnalyzing(false);
@@ -226,74 +262,150 @@ export default function ActiveSessionPage() {
       resetForNewQuestion();
       goToQuestion(currentQuestionIndex - 1);
       // Restore state if previously completed
-      if (questionStatuses[currentQuestionIndex - 1] === 'completed') {
-        setRecordingState('complete');
+      if (questionStatuses[currentQuestionIndex - 1] === "completed") {
+        setRecordingState("complete");
       }
     }
-  }, [currentQuestionIndex, goToQuestion, questionStatuses, resetForNewQuestion]);
+  }, [
+    currentQuestionIndex,
+    goToQuestion,
+    questionStatuses,
+    resetForNewQuestion,
+  ]);
 
   const goToNextQuestion = useCallback(() => {
-    if (questionStatuses[currentQuestionIndex] === 'completed' && currentQuestionIndex < totalQuestions - 1) {
+    if (
+      questionStatuses[currentQuestionIndex] === "completed" &&
+      currentQuestionIndex < totalQuestions - 1
+    ) {
       resetForNewQuestion();
       goToQuestion(currentQuestionIndex + 1);
-      if (questionStatuses[currentQuestionIndex + 1] === 'completed') {
-        setRecordingState('complete');
+      if (questionStatuses[currentQuestionIndex + 1] === "completed") {
+        setRecordingState("complete");
       }
     }
-  }, [currentQuestionIndex, questionStatuses, totalQuestions, goToQuestion, resetForNewQuestion]);
+  }, [
+    currentQuestionIndex,
+    questionStatuses,
+    totalQuestions,
+    goToQuestion,
+    resetForNewQuestion,
+  ]);
 
-  const jumpToQuestion = useCallback((index) => {
-    if (index === currentQuestionIndex) return;
-    if (questionStatuses[index] === 'completed' || index === currentQuestionIndex) {
-      resetForNewQuestion();
-      goToQuestion(index);
-      if (questionStatuses[index] === 'completed') {
-        setRecordingState('complete');
+  const jumpToQuestion = useCallback(
+    (index) => {
+      if (index === currentQuestionIndex) return;
+      if (
+        questionStatuses[index] === "completed" ||
+        index === currentQuestionIndex
+      ) {
+        resetForNewQuestion();
+        goToQuestion(index);
+        if (questionStatuses[index] === "completed") {
+          setRecordingState("complete");
+        }
       }
-    }
-  }, [currentQuestionIndex, questionStatuses, goToQuestion, resetForNewQuestion]);
+    },
+    [currentQuestionIndex, questionStatuses, goToQuestion, resetForNewQuestion],
+  );
 
-  const handleExit = () => { endSession(); navigate('/dashboard'); };
-  const handleGenerateReport = () => { endSession(); navigate(`/session/report/${sessionId}`); };
+  const handleExit = () => {
+    endSession();
+    navigate("/dashboard");
+  };
+
+  const handleGenerateReport = useCallback(async () => {
+    if (isGeneratingReport) return;
+
+    setIsGeneratingReport(true);
+    try {
+      const report = await generateReport();
+      if (!report) {
+        setIsGeneratingReport(false);
+        return;
+      }
+
+      await completeSession(sessionId, report);
+
+      await addReport({
+        sessionId,
+        patientId: currentSession?.patientId,
+        doctorId: currentDoctor?.id,
+        classification: report.classification,
+        riskScore: report.riskScore,
+        confidence: report.confidence,
+        recommendations: report.recommendations || [],
+        generatedAt: report.generatedAt,
+        aiInsights: report.aiInsights || null,
+      });
+
+      endSession();
+      navigate(`/session/report/${sessionId}`);
+    } catch (error) {
+      console.error("Failed to generate report:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  }, [
+    addReport,
+    completeSession,
+    currentDoctor,
+    currentSession,
+    endSession,
+    generateReport,
+    isGeneratingReport,
+    navigate,
+    sessionId,
+  ]);
 
   // ── Keyboard Shortcuts ──
   useEffect(() => {
     const handler = (e) => {
-      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")
+        return;
 
       switch (e.key) {
-        case ' ':
+        case " ":
           e.preventDefault();
-          if (recordingState === 'ready' && inputMode === 'record') {
+          if (recordingState === "ready" && inputMode === "record") {
             startRecording();
-          } else if (recordingState === 'recording') {
+          } else if (recordingState === "recording") {
             stopRecording();
           }
           break;
-        case 'p':
-        case 'P':
-          if (recordingState === 'recording') pauseRecording();
+        case "p":
+        case "P":
+          if (recordingState === "recording") pauseRecording();
           break;
-        case 'r':
-        case 'R':
-          if (recordingState === 'paused') resumeRecording();
+        case "r":
+        case "R":
+          if (recordingState === "paused") resumeRecording();
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           goToNextQuestion();
           break;
-        case 'ArrowLeft':
+        case "ArrowLeft":
           goToPreviousQuestion();
           break;
-        case 'Escape':
+        case "Escape":
           setExitModal(true);
           break;
         default:
           break;
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [recordingState, inputMode, startRecording, stopRecording, pauseRecording, resumeRecording, goToNextQuestion, goToPreviousQuestion]);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    recordingState,
+    inputMode,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    goToNextQuestion,
+    goToPreviousQuestion,
+  ]);
 
   // ── No session guard ──
   if (!currentSession) {
@@ -304,18 +416,22 @@ export default function ActiveSessionPage() {
             <Brain size={28} className="text-deep-teal" />
           </div>
           <p className="text-text-muted mb-4">No active session found.</p>
-          <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+          <Button onClick={() => navigate("/dashboard")}>
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     );
   }
 
-  const hasCurrentAudio = (inputMode === 'record' && recordingState === 'complete' && recorder.audioURL) ||
-                          (inputMode === 'upload' && uploadedFile);
+  const hasCurrentAudio =
+    (inputMode === "record" &&
+      recordingState === "complete" &&
+      recorder.audioURL) ||
+    (inputMode === "upload" && uploadedFile);
 
   return (
     <div className="flex flex-col h-screen bg-background">
-
       {/* ═══════════ TOP BAR ═══════════ */}
       <header className="h-14 bg-surface/90 backdrop-blur-md border-b border-border/40 flex items-center justify-between px-4 lg:px-6 shrink-0 z-20">
         <button
@@ -327,12 +443,19 @@ export default function ActiveSessionPage() {
 
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-full bg-deep-teal/10 flex items-center justify-center text-deep-teal text-[10px] font-bold">
-            {patient?.fullName?.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+            {patient?.fullName
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)}
           </div>
-          <span className="text-sm font-medium text-text-primary hidden sm:inline">{patient?.fullName}</span>
+          <span className="text-sm font-medium text-text-primary hidden sm:inline">
+            {patient?.fullName}
+          </span>
           <span className="text-xs text-text-muted">•</span>
           <span className="text-sm font-mono font-semibold text-text-primary flex items-center gap-1">
-            <Clock size={13} />{formatTime(elapsedTime)}
+            <Clock size={13} />
+            {formatTime(elapsedTime)}
           </span>
         </div>
 
@@ -363,18 +486,25 @@ export default function ActiveSessionPage() {
             exit={{ opacity: 0, y: -8 }}
             className="absolute top-14 right-4 z-30 bg-surface rounded-xl border border-border/60 shadow-lg p-4 w-64"
           >
-            <p className="text-xs font-bold text-text-muted uppercase mb-2">Keyboard Shortcuts</p>
+            <p className="text-xs font-bold text-text-muted uppercase mb-2">
+              Keyboard Shortcuts
+            </p>
             <div className="space-y-1.5 text-xs">
               {[
-                ['Space', 'Start / Stop recording'],
-                ['P', 'Pause recording'],
-                ['R', 'Resume recording'],
-                ['→', 'Next question'],
-                ['←', 'Previous question'],
-                ['Esc', 'Exit session'],
+                ["Space", "Start / Stop recording"],
+                ["P", "Pause recording"],
+                ["R", "Resume recording"],
+                ["→", "Next question"],
+                ["←", "Previous question"],
+                ["Esc", "Exit session"],
               ].map(([key, desc]) => (
-                <div key={key} className="flex items-center justify-between gap-2">
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono font-bold text-text-secondary">{key}</kbd>
+                <div
+                  key={key}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono font-bold text-text-secondary">
+                    {key}
+                  </kbd>
                   <span className="text-text-muted">{desc}</span>
                 </div>
               ))}
@@ -386,20 +516,23 @@ export default function ActiveSessionPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* ═══════════ MAIN CONTENT ═══════════ */}
         <main className="flex-1 flex flex-col items-center justify-between px-4 py-5 overflow-y-auto">
-
           {/* ── Progress Bar ── */}
           <div className="w-full max-w-xl">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-text-muted">
                 Question {currentQuestionIndex + 1} of {totalQuestions}
               </span>
-              <span className="text-xs text-text-muted">{completedCount} completed</span>
+              <span className="text-xs text-text-muted">
+                {completedCount} completed
+              </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-deep-teal to-sage rounded-full"
-                animate={{ width: `${((completedCount) / totalQuestions) * 100}%` }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
+                animate={{
+                  width: `${(completedCount / totalQuestions) * 100}%`,
+                }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </div>
           </div>
@@ -420,13 +553,15 @@ export default function ActiveSessionPage() {
                     #{currentQuestionIndex + 1}
                   </span>
                   <span className="text-[10px] font-bold text-deep-teal bg-deep-teal/8 px-2 py-0.5 rounded-full uppercase">
-                    {currentQ?.category || 'General'}
+                    {currentQ?.category || "General"}
                   </span>
                 </div>
                 <p className="text-lg md:text-xl font-semibold text-navy-dark leading-relaxed">
-                  {currentQ?.questionText || 'Loading question…'}
+                  {currentQ?.questionText || "Loading question…"}
                 </p>
-                <p className="text-xs text-text-muted mt-3">~{currentQ?.expectedDuration || 60}s expected</p>
+                <p className="text-xs text-text-muted mt-3">
+                  ~{currentQ?.expectedDuration || 60}s expected
+                </p>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -435,23 +570,23 @@ export default function ActiveSessionPage() {
           <div className="w-full max-w-xl">
             <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl mb-4 w-fit mx-auto">
               <button
-                onClick={() => handleModeSwitch('record')}
+                onClick={() => handleModeSwitch("record")}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                  inputMode === 'record'
-                    ? 'bg-surface text-deep-teal shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
+                  "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  inputMode === "record"
+                    ? "bg-surface text-deep-teal shadow-sm"
+                    : "text-text-muted hover:text-text-secondary",
                 )}
               >
                 <Mic size={13} /> Record Live
               </button>
               <button
-                onClick={() => handleModeSwitch('upload')}
+                onClick={() => handleModeSwitch("upload")}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                  inputMode === 'upload'
-                    ? 'bg-surface text-deep-teal shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
+                  "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  inputMode === "upload"
+                    ? "bg-surface text-deep-teal shadow-sm"
+                    : "text-text-muted hover:text-text-secondary",
                 )}
               >
                 <Upload size={13} /> Upload Audio
@@ -459,27 +594,37 @@ export default function ActiveSessionPage() {
             </div>
 
             {/* ── RECORD MODE ── */}
-            {inputMode === 'record' && (
+            {inputMode === "record" && (
               <div className="flex flex-col items-center gap-4">
-
                 {/* Microphone Error */}
                 <AnimatePresence>
                   {micError && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       className="w-full bg-error/5 border border-error/15 rounded-xl p-4 flex items-start gap-3"
                     >
-                      <MicOff size={18} className="text-error shrink-0 mt-0.5" />
+                      <MicOff
+                        size={18}
+                        className="text-error shrink-0 mt-0.5"
+                      />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-error">Microphone Access Required</p>
-                        <p className="text-xs text-text-muted mt-1">{micError}</p>
+                        <p className="text-sm font-medium text-error">
+                          Microphone Access Required
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">
+                          {micError}
+                        </p>
                         <p className="text-xs text-text-muted mt-2">
-                          <strong>Chrome:</strong> Click the lock icon in the address bar → Site settings → Microphone → Allow
+                          <strong>Chrome:</strong> Click the lock icon in the
+                          address bar → Site settings → Microphone → Allow
                         </p>
                       </div>
-                      <button onClick={() => setMicError(null)} className="text-error/50 hover:text-error cursor-pointer p-1">
+                      <button
+                        onClick={() => setMicError(null)}
+                        className="text-error/50 hover:text-error cursor-pointer p-1"
+                      >
                         <X size={14} />
                       </button>
                     </motion.div>
@@ -489,16 +634,20 @@ export default function ActiveSessionPage() {
                 {/* Waveform */}
                 <WaveformVisualizer
                   waveformData={recorder.waveformData}
-                  isRecording={recordingState === 'recording'}
-                  isPaused={recordingState === 'paused'}
-                  isFrozen={recordingState === 'complete'}
+                  isRecording={recordingState === "recording"}
+                  isPaused={recordingState === "paused"}
+                  isFrozen={recordingState === "complete"}
                   height={window.innerWidth < 640 ? 100 : 140}
                   className="w-full"
                 />
 
                 {/* Ready State */}
-                {recordingState === 'ready' && (
-                  <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-3">
+                {recordingState === "ready" && (
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    className="flex flex-col items-center gap-3"
+                  >
                     <button
                       onClick={startRecording}
                       className="w-20 h-20 min-h-[48px] rounded-full bg-gradient-to-br from-deep-teal to-deep-teal-dark flex items-center justify-center text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
@@ -508,24 +657,34 @@ export default function ActiveSessionPage() {
                     </button>
                     <p className="text-sm text-text-muted">
                       Tap to start recording
-                      <kbd className="ml-2 px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Space</kbd>
+                      <kbd className="ml-2 px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">
+                        Space
+                      </kbd>
                     </p>
                   </motion.div>
                 )}
 
                 {/* Recording State */}
-                {recordingState === 'recording' && (
-                  <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-3">
+                {recordingState === "recording" && (
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    className="flex flex-col items-center gap-3"
+                  >
                     {/* Live indicator */}
                     <div className="flex items-center gap-2 mb-1">
                       <span className="relative flex h-2.5 w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-coral opacity-75" />
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-coral" />
                       </span>
-                      <span className="text-xs font-bold text-coral uppercase">Recording</span>
+                      <span className="text-xs font-bold text-coral uppercase">
+                        Recording
+                      </span>
                     </div>
 
-                    <p className="text-2xl font-mono font-bold text-navy-dark tabular-nums">{recorder.formattedTime}</p>
+                    <p className="text-2xl font-mono font-bold text-navy-dark tabular-nums">
+                      {recorder.formattedTime}
+                    </p>
 
                     <div className="flex items-center gap-4">
                       <button
@@ -552,57 +711,98 @@ export default function ActiveSessionPage() {
                     </div>
 
                     <p className="text-xs text-text-muted">
-                      Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Space</kbd> to stop
-                      • <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">P</kbd> to pause
+                      Press{" "}
+                      <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">
+                        Space
+                      </kbd>{" "}
+                      to stop •{" "}
+                      <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">
+                        P
+                      </kbd>{" "}
+                      to pause
                     </p>
                   </motion.div>
                 )}
 
                 {/* Paused State */}
-                {recordingState === 'paused' && (
-                  <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-3">
+                {recordingState === "paused" && (
+                  <motion.div
+                    initial={{ scale: 0.95 }}
+                    animate={{ scale: 1 }}
+                    className="flex flex-col items-center gap-3"
+                  >
                     <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-warning/10 border border-warning/20">
                       <Pause size={12} className="text-warning" />
-                      <span className="text-xs font-bold text-warning">PAUSED</span>
-                      <span className="text-xs font-mono font-bold text-warning">{recorder.formattedTime}</span>
+                      <span className="text-xs font-bold text-warning">
+                        PAUSED
+                      </span>
+                      <span className="text-xs font-mono font-bold text-warning">
+                        {recorder.formattedTime}
+                      </span>
                     </div>
                     <div className="flex gap-3">
-                      <Button variant="outline" onClick={discardRecording} leftIcon={<X size={14} />}>
+                      <Button
+                        variant="outline"
+                        onClick={discardRecording}
+                        leftIcon={<X size={14} />}
+                      >
                         Discard
                       </Button>
-                      <Button onClick={resumeRecording} leftIcon={<Play size={14} />}>
+                      <Button
+                        onClick={resumeRecording}
+                        leftIcon={<Play size={14} />}
+                      >
                         Resume
                       </Button>
                     </div>
                     <p className="text-xs text-text-muted">
-                      Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">R</kbd> to resume
+                      Press{" "}
+                      <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">
+                        R
+                      </kbd>{" "}
+                      to resume
                     </p>
                   </motion.div>
                 )}
 
                 {/* Complete State — Playback */}
-                {recordingState === 'complete' && !analyzing && recorder.audioURL && (
-                  <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-4 w-full">
-                    <AudioPlayback
-                      audioURL={recorder.audioURL}
-                      duration={recorder.recordingTime}
-                      className="w-full"
-                    />
-                    <div className="flex gap-3 w-full max-w-xs">
-                      <Button variant="outline" className="flex-1" leftIcon={<RotateCcw size={14} />} onClick={discardRecording}>
-                        Re-record
-                      </Button>
-                      <Button className="flex-1" rightIcon={<ArrowRight size={14} />} onClick={saveAndNext}>
-                        Save & Next
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
+                {recordingState === "complete" &&
+                  !analyzing &&
+                  recorder.audioURL && (
+                    <motion.div
+                      initial={{ scale: 0.95 }}
+                      animate={{ scale: 1 }}
+                      className="flex flex-col items-center gap-4 w-full"
+                    >
+                      <AudioPlayback
+                        audioURL={recorder.audioURL}
+                        duration={recorder.recordingTime}
+                        className="w-full"
+                      />
+                      <div className="flex gap-3 w-full max-w-xs">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          leftIcon={<RotateCcw size={14} />}
+                          onClick={discardRecording}
+                        >
+                          Re-record
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          rightIcon={<ArrowRight size={14} />}
+                          onClick={saveAndNext}
+                        >
+                          Save & Next
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
               </div>
             )}
 
             {/* ── UPLOAD MODE ── */}
-            {inputMode === 'upload' && (
+            {inputMode === "upload" && (
               <div className="flex flex-col items-center gap-4">
                 {!uploadedFile ? (
                   <AudioUploader
@@ -622,9 +822,12 @@ export default function ActiveSessionPage() {
                         <FileAudio size={18} className="text-deep-teal" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-primary truncate">{uploadedFile.name}</p>
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {uploadedFile.name}
+                        </p>
                         <p className="text-[11px] text-text-muted">
-                          {(uploadedFile.file.size / (1024 * 1024)).toFixed(1)} MB
+                          {(uploadedFile.file.size / (1024 * 1024)).toFixed(1)}{" "}
+                          MB
                         </p>
                       </div>
                       <button
@@ -637,14 +840,27 @@ export default function ActiveSessionPage() {
                     </div>
 
                     {/* Playback preview */}
-                    <AudioPlayback audioURL={uploadedFile.url} fileName={uploadedFile.name} className="w-full" />
+                    <AudioPlayback
+                      audioURL={uploadedFile.url}
+                      fileName={uploadedFile.name}
+                      className="w-full"
+                    />
 
                     {/* Actions */}
                     <div className="flex gap-3 w-full max-w-xs mx-auto">
-                      <Button variant="outline" className="flex-1" onClick={clearUpload} leftIcon={<X size={14} />}>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={clearUpload}
+                        leftIcon={<X size={14} />}
+                      >
                         Remove
                       </Button>
-                      <Button className="flex-1" rightIcon={<ArrowRight size={14} />} onClick={saveAndNext}>
+                      <Button
+                        className="flex-1"
+                        rightIcon={<ArrowRight size={14} />}
+                        onClick={saveAndNext}
+                      >
                         Save & Next
                       </Button>
                     </div>
@@ -676,7 +892,9 @@ export default function ActiveSessionPage() {
                 >
                   <Check size={14} className="text-success shrink-0" />
                   <span className="text-xs text-text-secondary">
-                    {analysisResult.speechRate} wpm • {analysisResult.pauseDuration}s pauses • Coherence: {analysisResult.coherenceScore || analysisResult.coherence}
+                    {analysisResult.source === "ai"
+                      ? `Dementia signal: ${analysisResult.hasDementia ? "Detected" : "Not detected"} • Confidence: ${analysisResult.confidencePercentage || `${Math.round((analysisResult.confidenceScore || 0) * 100)}%`}`
+                      : `${analysisResult.speechRate || "-"} wpm • ${analysisResult.pauseDuration || "-"}s pauses • Coherence: ${analysisResult.coherenceScore || analysisResult.coherence || "-"}`}
                   </span>
                 </motion.div>
               )}
@@ -688,7 +906,9 @@ export default function ActiveSessionPage() {
                   className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-warning/5 border border-warning/15 mt-4"
                 >
                   <AlertTriangle size={14} className="text-warning shrink-0" />
-                  <span className="text-xs text-text-secondary">Saved offline. Analysis will run when connected.</span>
+                  <span className="text-xs text-text-secondary">
+                    Saved offline. Analysis will run when connected.
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -699,22 +919,28 @@ export default function ActiveSessionPage() {
                 onClick={goToPreviousQuestion}
                 disabled={currentQuestionIndex === 0}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentQuestionIndex > 0
-                    ? 'text-text-secondary hover:text-text-primary hover:bg-muted/50'
-                    : 'text-text-muted/30 cursor-not-allowed'
+                    ? "text-text-secondary hover:text-text-primary hover:bg-muted/50"
+                    : "text-text-muted/30 cursor-not-allowed",
                 )}
               >
                 <ArrowLeft size={14} /> Previous
               </button>
               <button
                 onClick={goToNextQuestion}
-                disabled={!(questionStatuses[currentQuestionIndex] === 'completed' && currentQuestionIndex < totalQuestions - 1)}
+                disabled={
+                  !(
+                    questionStatuses[currentQuestionIndex] === "completed" &&
+                    currentQuestionIndex < totalQuestions - 1
+                  )
+                }
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                  questionStatuses[currentQuestionIndex] === 'completed' && currentQuestionIndex < totalQuestions - 1
-                    ? 'text-text-secondary hover:text-text-primary hover:bg-muted/50'
-                    : 'text-text-muted/30 cursor-not-allowed'
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                  questionStatuses[currentQuestionIndex] === "completed" &&
+                    currentQuestionIndex < totalQuestions - 1
+                    ? "text-text-secondary hover:text-text-primary hover:bg-muted/50"
+                    : "text-text-muted/30 cursor-not-allowed",
                 )}
               >
                 Next <ArrowRight size={14} />
@@ -725,38 +951,46 @@ export default function ActiveSessionPage() {
 
         {/* ═══════════ SIDEBAR — Question Navigator (Desktop) ═══════════ */}
         <aside className="hidden lg:block w-60 bg-surface border-l border-border/40 overflow-y-auto p-3 shrink-0">
-          <p className="text-[10px] font-bold text-text-muted uppercase mb-3 px-1">Questions</p>
+          <p className="text-[10px] font-bold text-text-muted uppercase mb-3 px-1">
+            Questions
+          </p>
           <div className="space-y-1">
             {questions.map((q, i) => {
-              const status = questionStatuses[i] || (i === currentQuestionIndex ? 'current' : 'pending');
-              const canClick = status === 'completed' || i === currentQuestionIndex;
+              const status =
+                questionStatuses[i] ||
+                (i === currentQuestionIndex ? "current" : "pending");
+              const canClick =
+                status === "completed" || i === currentQuestionIndex;
               return (
                 <button
                   key={i}
                   onClick={() => canClick && jumpToQuestion(i)}
                   disabled={!canClick}
                   className={cn(
-                    'w-full flex items-center gap-2 px-2.5 py-2.5 rounded-xl text-left transition-all text-xs min-h-[44px]',
+                    "w-full flex items-center gap-2 px-2.5 py-2.5 rounded-xl text-left transition-all text-xs min-h-[44px]",
                     i === currentQuestionIndex
-                      ? 'bg-deep-teal/8 text-deep-teal border border-deep-teal/15'
-                      : status === 'completed'
-                        ? 'text-text-secondary hover:bg-muted/30 cursor-pointer'
-                        : 'text-text-muted/50 cursor-not-allowed',
-                    canClick && 'cursor-pointer'
+                      ? "bg-deep-teal/8 text-deep-teal border border-deep-teal/15"
+                      : status === "completed"
+                        ? "text-text-secondary hover:bg-muted/30 cursor-pointer"
+                        : "text-text-muted/50 cursor-not-allowed",
+                    canClick && "cursor-pointer",
                   )}
                 >
                   {/* Status icon */}
-                  <div className={cn(
-                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold',
-                    status === 'completed'
-                      ? 'bg-success/15 text-success'
-                      : i === currentQuestionIndex
-                        ? 'bg-deep-teal/15 text-deep-teal'
-                        : 'bg-muted text-text-muted'
-                  )}>
-                    {status === 'completed' ? (
+                  <div
+                    className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold",
+                      status === "completed"
+                        ? "bg-success/15 text-success"
+                        : i === currentQuestionIndex
+                          ? "bg-deep-teal/15 text-deep-teal"
+                          : "bg-muted text-text-muted",
+                    )}
+                  >
+                    {status === "completed" ? (
                       <Check size={11} />
-                    ) : i === currentQuestionIndex && recordingState === 'recording' ? (
+                    ) : i === currentQuestionIndex &&
+                      recordingState === "recording" ? (
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-deep-teal opacity-75" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-deep-teal" />
@@ -765,10 +999,12 @@ export default function ActiveSessionPage() {
                       i + 1
                     )}
                   </div>
-                  <span className="truncate flex-1">{q.questionText?.slice(0, 35)}…</span>
-                  {status === 'completed' && questionRecordings[i] && (
+                  <span className="truncate flex-1">
+                    {q.questionText?.slice(0, 35)}…
+                  </span>
+                  {status === "completed" && questionRecordings[i] && (
                     <span className="text-[9px] text-text-muted shrink-0">
-                      {questionRecordings[i].type === 'uploaded' ? '📎' : '🎤'}
+                      {questionRecordings[i].type === "uploaded" ? "📎" : "🎤"}
                     </span>
                   )}
                 </button>
@@ -790,10 +1026,10 @@ export default function ActiveSessionPage() {
               className="fixed inset-0 bg-navy-dark/30 backdrop-blur-sm z-40 lg:hidden"
             />
             <motion.div
-              initial={{ y: '100%' }}
+              initial={{ y: "100%" }}
               animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-surface rounded-t-2xl border-t border-border/40 shadow-xl max-h-[70vh] overflow-y-auto lg:hidden"
             >
               <div className="p-4">
@@ -809,34 +1045,46 @@ export default function ActiveSessionPage() {
                 <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
                 <div className="space-y-1.5">
                   {questions.map((q, i) => {
-                    const status = questionStatuses[i] || (i === currentQuestionIndex ? 'current' : 'pending');
-                    const canClick = status === 'completed' || i === currentQuestionIndex;
+                    const status =
+                      questionStatuses[i] ||
+                      (i === currentQuestionIndex ? "current" : "pending");
+                    const canClick =
+                      status === "completed" || i === currentQuestionIndex;
                     return (
                       <button
                         key={i}
-                        onClick={() => { if (canClick) { jumpToQuestion(i); setShowMobileNav(false); } }}
+                        onClick={() => {
+                          if (canClick) {
+                            jumpToQuestion(i);
+                            setShowMobileNav(false);
+                          }
+                        }}
                         disabled={!canClick}
                         className={cn(
-                          'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left min-h-[48px] transition-all',
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left min-h-[48px] transition-all",
                           i === currentQuestionIndex
-                            ? 'bg-deep-teal/8 text-deep-teal border border-deep-teal/15'
-                            : status === 'completed'
-                              ? 'text-text-secondary hover:bg-muted/30'
-                              : 'text-text-muted/50',
-                          canClick && 'cursor-pointer'
+                            ? "bg-deep-teal/8 text-deep-teal border border-deep-teal/15"
+                            : status === "completed"
+                              ? "text-text-secondary hover:bg-muted/30"
+                              : "text-text-muted/50",
+                          canClick && "cursor-pointer",
                         )}
                       >
-                        <div className={cn(
-                          'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold',
-                          status === 'completed'
-                            ? 'bg-success/15 text-success'
-                            : i === currentQuestionIndex
-                              ? 'bg-deep-teal/15 text-deep-teal'
-                              : 'bg-muted text-text-muted'
-                        )}>
-                          {status === 'completed' ? <Check size={12} /> : i + 1}
+                        <div
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold",
+                            status === "completed"
+                              ? "bg-success/15 text-success"
+                              : i === currentQuestionIndex
+                                ? "bg-deep-teal/15 text-deep-teal"
+                                : "bg-muted text-text-muted",
+                          )}
+                        >
+                          {status === "completed" ? <Check size={12} /> : i + 1}
                         </div>
-                        <span className="text-sm truncate flex-1">{q.questionText?.slice(0, 40)}…</span>
+                        <span className="text-sm truncate flex-1">
+                          {q.questionText?.slice(0, 40)}…
+                        </span>
                       </button>
                     );
                   })}
@@ -862,17 +1110,31 @@ export default function ActiveSessionPage() {
                   <AlertTriangle size={20} className="text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-navy-dark">Switch Input Mode?</h3>
+                  <h3 className="text-base font-bold text-navy-dark">
+                    Switch Input Mode?
+                  </h3>
                   <p className="text-sm text-text-secondary mt-1">
-                    {switchWarning === 'upload'
-                      ? 'Current recording will be discarded.'
-                      : 'Uploaded file will be removed.'}
+                    {switchWarning === "upload"
+                      ? "Current recording will be discarded."
+                      : "Uploaded file will be removed."}
                   </p>
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setSwitchWarning(null)}>Cancel</Button>
-                <Button variant="danger" className="flex-1" onClick={confirmModeSwitch}>Switch</Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setSwitchWarning(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  onClick={confirmModeSwitch}
+                >
+                  Switch
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -894,15 +1156,30 @@ export default function ActiveSessionPage() {
                   <AlertTriangle size={20} className="text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-navy-dark">Pause Session?</h3>
+                  <h3 className="text-base font-bold text-navy-dark">
+                    Pause Session?
+                  </h3>
                   <p className="text-sm text-text-secondary mt-1">
-                    All recordings will be saved. Progress: {completedCount}/{totalQuestions} completed.
+                    All recordings will be saved. Progress: {completedCount}/
+                    {totalQuestions} completed.
                   </p>
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setExitModal(false)}>Continue</Button>
-                <Button variant="danger" className="flex-1" onClick={handleExit}>Save & Exit</Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setExitModal(false)}
+                >
+                  Continue
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  onClick={handleExit}
+                >
+                  Save & Exit
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -923,19 +1200,21 @@ export default function ActiveSessionPage() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: 'spring', delay: 0.1 }}
+                transition={{ type: "spring", delay: 0.1 }}
                 className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4"
               >
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.3 }}
+                  transition={{ type: "spring", delay: 0.3 }}
                 >
                   <Check size={28} className="text-success" />
                 </motion.div>
               </motion.div>
 
-              <h3 className="text-lg font-bold text-navy-dark">Session Complete! 🎉</h3>
+              <h3 className="text-lg font-bold text-navy-dark">
+                Session Complete! 🎉
+              </h3>
               <p className="text-sm text-text-secondary mt-2">
                 All {totalQuestions} questions answered
               </p>
@@ -946,29 +1225,47 @@ export default function ActiveSessionPage() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 mb-6">
                 <div className="bg-muted/30 rounded-lg p-2.5">
-                  <p className="text-lg font-bold text-navy-dark">{totalQuestions}</p>
+                  <p className="text-lg font-bold text-navy-dark">
+                    {totalQuestions}
+                  </p>
                   <p className="text-[10px] text-text-muted">Questions</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-2.5">
-                  <p className="text-lg font-bold text-navy-dark">{formatTime(elapsedTime)}</p>
+                  <p className="text-lg font-bold text-navy-dark">
+                    {formatTime(elapsedTime)}
+                  </p>
                   <p className="text-[10px] text-text-muted">Duration</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-2.5">
                   <p className="text-lg font-bold text-deep-teal">
-                    {Object.values(questionRecordings).filter((r) => r.type === 'recorded').length}🎤
-                    {Object.values(questionRecordings).filter((r) => r.type === 'uploaded').length > 0 &&
-                      ` ${Object.values(questionRecordings).filter((r) => r.type === 'uploaded').length}📎`
+                    {
+                      Object.values(questionRecordings).filter(
+                        (r) => r.type === "recorded",
+                      ).length
                     }
+                    🎤
+                    {Object.values(questionRecordings).filter(
+                      (r) => r.type === "uploaded",
+                    ).length > 0 &&
+                      ` ${Object.values(questionRecordings).filter((r) => r.type === "uploaded").length}📎`}
                   </p>
                   <p className="text-[10px] text-text-muted">Recordings</p>
                 </div>
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => navigate(`/session/review/${sessionId}`)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate(`/session/review/${sessionId}`)}
+                >
                   Review Session
                 </Button>
-                <Button className="flex-1" onClick={handleGenerateReport}>
+                <Button
+                  className="flex-1"
+                  onClick={handleGenerateReport}
+                  isLoading={isGeneratingReport}
+                >
                   Generate Report
                 </Button>
               </div>

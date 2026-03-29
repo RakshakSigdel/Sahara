@@ -1,5 +1,5 @@
-/* ═══════════════════════════════════════════
-   Mock API — Doctor-Centric EchoMind
+﻿/* ═══════════════════════════════════════════
+   Mock API — Doctor-Centric Sahara
    ═══════════════════════════════════════════ */
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));

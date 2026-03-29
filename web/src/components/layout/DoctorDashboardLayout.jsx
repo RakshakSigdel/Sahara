@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,7 +41,7 @@ export default function DoctorDashboardLayout({ children }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-deep-teal to-sage flex items-center justify-center">
             <Brain size={18} className="text-white" />
           </div>
-          <span className="text-lg font-bold text-navy-dark tracking-tight">EchoMind</span>
+          <span className="text-lg font-bold text-navy-dark tracking-tight">Sahara</span>
         </Link>
 
         {/* Nav links */}
@@ -95,7 +95,7 @@ export default function DoctorDashboardLayout({ children }) {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-deep-teal to-sage flex items-center justify-center">
                     <Brain size={18} className="text-white" />
                   </div>
-                  <span className="text-lg font-bold text-navy-dark">EchoMind</span>
+                  <span className="text-lg font-bold text-navy-dark">Sahara</span>
                 </div>
                 <button onClick={() => setSidebarOpen(false)} className="p-1 text-text-muted cursor-pointer"><X size={20} /></button>
               </div>

@@ -1,11 +1,11 @@
-/* ═══════════════════════════════════════════
-   Mock Data — Doctor-Centric EchoMind
+﻿/* ═══════════════════════════════════════════
+   Mock Data — Doctor-Centric Sahara
    ═══════════════════════════════════════════ */
 
 // ── Doctor ──
 export const mockDoctor = {
   id: 'doc_001',
-  email: 'dr.sharma@echomind.health',
+  email: 'dr.sharma@Sahara.health',
   fullName: 'Dr. Anita Sharma',
   specialty: 'Neurology',
   license: 'NMC-2019-4572',

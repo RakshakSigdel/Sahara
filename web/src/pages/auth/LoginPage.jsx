@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDoctor } from '../../contexts/DoctorContext';
 import { useForm } from 'react-hook-form';
@@ -40,7 +40,7 @@ function DoctorIllustration() {
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="w-full max-w-md mx-auto mt-12">
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/15 text-left">
-            <p className="text-white/80 text-sm italic leading-relaxed">&ldquo;EchoMind detected subtle speech pattern changes 18 months before clinical diagnosis. An invaluable screening tool.&rdquo;</p>
+            <p className="text-white/80 text-sm italic leading-relaxed">&ldquo;Sahara detected subtle speech pattern changes 18 months before clinical diagnosis. An invaluable screening tool.&rdquo;</p>
             <p className="text-white/50 text-xs mt-3">— Dr. Patel, Neurologist, Stanford Medical</p>
           </div>
         </motion.div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -389,7 +389,7 @@ function EarlyDetectionTab() {
             </thead>
             <tbody>
               {[
-                { method: 'Voice-Based (EchoMind)', accuracy: '94-98%', invasive: 'None', cost: 'Free', access: '★★★★★', highlight: true },
+                { method: 'Voice-Based (Sahara)', accuracy: '94-98%', invasive: 'None', cost: 'Free', access: '★★★★★', highlight: true },
                 { method: 'Cognitive Tests (MoCA)', accuracy: '90-95%', invasive: 'None', cost: 'Low', access: '★★★★☆' },
                 { method: 'Brain MRI', accuracy: '95-98%', invasive: 'Low', cost: 'High', access: '★★☆☆☆' },
                 { method: 'PET Scan', accuracy: '95-99%', invasive: 'Moderate', cost: 'Very High', access: '★☆☆☆☆' },
@@ -414,7 +414,7 @@ function EarlyDetectionTab() {
         <div className="space-y-3">
           {[
             { n: 1, title: 'Document Symptoms', desc: 'Keep a log of memory lapses, confusion, and behavioral changes with dates' },
-            { n: 2, title: 'Take a Screening Test', desc: 'Use EchoMind for a quick, non-invasive voice-based screening' },
+            { n: 2, title: 'Take a Screening Test', desc: 'Use Sahara for a quick, non-invasive voice-based screening' },
             { n: 3, title: 'Schedule a Doctor Appointment', desc: 'Share your screening results with your primary care physician' },
             { n: 4, title: 'Prepare for Your Visit', desc: 'Bring your symptom log, medication list, and screening results' },
             { n: 5, title: 'Request Comprehensive Evaluation', desc: 'Your doctor may refer you for cognitive testing or brain imaging' },

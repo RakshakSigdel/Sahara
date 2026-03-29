@@ -1,8 +1,8 @@
-@import "./styles/globals.css" layer(base);
+﻿@import "./styles/globals.css" layer(base);
 @import "tailwindcss";
 
 /* ========================================
-   EchoMind — Tailwind v4 Design System
+   Sahara — Tailwind v4 Design System
    ======================================== */
 
 @theme {

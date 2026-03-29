@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
@@ -226,7 +226,7 @@ export default function SignupPage() {
           </Link>
 
           <h1 className="text-2xl font-bold text-navy-dark tracking-tight">Create Your Clinical Account</h1>
-          <p className="mt-1 text-sm text-text-secondary">Instant access to the EchoMind professional suite</p>
+          <p className="mt-1 text-sm text-text-secondary">Instant access to the Sahara professional suite</p>
 
           <div className="flex items-center gap-3 mt-5 mb-6">
             <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">

@@ -1,16 +1,15 @@
 import os
 import json
+import time
 import librosa
 import torch
 from dotenv import load_dotenv
 from typing import List
 from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from transformers import AutoModelForAudioClassification, AutoFeatureExtractor, pipeline
 from google import genai
-
 
 # -----------------------
 # Load environment
@@ -28,14 +27,6 @@ if not API_KEY:
 # -----------------------
 
 app = FastAPI(title="Dementia Detection API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # -----------------------
@@ -142,6 +133,35 @@ def compute_audio_score(audio_results):
     return sum(scores) / len(scores)
 
 
+def generate_content_with_retry(client, model, prompt, max_attempts=3, initial_delay=1.0):
+
+    delay = initial_delay
+    last_error = None
+
+    for attempt in range(max_attempts):
+        try:
+            return client.models.generate_content(
+                model=model,
+                contents=prompt
+            )
+        except Exception as e:
+            last_error = e
+            message = str(e)
+            is_transient = (
+                "503" in message
+                or "UNAVAILABLE" in message.upper()
+                or "RESOURCE_EXHAUSTED" in message.upper()
+            )
+
+            if not is_transient or attempt == max_attempts - 1:
+                raise
+
+            time.sleep(delay)
+            delay *= 2
+
+    raise last_error
+
+
 # -----------------------
 # /report endpoint
 # -----------------------
@@ -192,9 +212,12 @@ JSON FORMAT
 }}
 """
 
-        response = client.models.generate_content(
+        response = generate_content_with_retry(
+            client=client,
             model="gemini-2.5-flash",
-            contents=prompt
+            prompt=prompt,
+            max_attempts=3,
+            initial_delay=1.0,
         )
 
         report_text = response.text

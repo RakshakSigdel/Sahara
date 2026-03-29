@@ -1,11 +1,18 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
+import { analyzeAudioBlob, generateAiReport } from "../services/aiService";
 
 const SessionContext = createContext(null);
 
 export function SessionProvider({ children }) {
   const [activeSession, setActiveSession] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [recordings, setRecordings] = useState({});         // { questionId: blob }
+  const [recordings, setRecordings] = useState({}); // { questionId: blob }
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -15,29 +22,36 @@ export function SessionProvider({ children }) {
   const startSession = useCallback((sessionDataOrPatientId, questions) => {
     let sessionData;
 
-    if (typeof sessionDataOrPatientId === 'object' && sessionDataOrPatientId !== null && sessionDataOrPatientId.id) {
+    if (
+      typeof sessionDataOrPatientId === "object" &&
+      sessionDataOrPatientId !== null &&
+      sessionDataOrPatientId.id
+    ) {
       // Called with a Firebase session object (from DoctorContext.createSession)
       sessionData = {
         ...sessionDataOrPatientId,
-        status: 'in-progress',
+        status: "in-progress",
       };
-    } else if (typeof sessionDataOrPatientId === 'string' && Array.isArray(questions)) {
+    } else if (
+      typeof sessionDataOrPatientId === "string" &&
+      Array.isArray(questions)
+    ) {
       // Legacy: Called as startSession(patientId, questions) from SessionSetupPage
       sessionData = {
         id: `ses_${Date.now()}`,
         patientId: sessionDataOrPatientId,
         questions: questions.map((q, i) => ({
           id: q.id || `sq_${Date.now()}_${i}`,
-          questionText: q.questionText || '',
-          category: q.category || 'General',
+          questionText: q.questionText || "",
+          category: q.category || "General",
           expectedDuration: q.expectedDuration || 60,
           order: i + 1,
-          status: 'pending',
+          status: "pending",
           analysis: null,
           audioRecordingUrl: null,
           recordedAt: null,
         })),
-        status: 'in-progress',
+        status: "in-progress",
         sessionDate: new Date().toISOString(),
       };
     } else {
@@ -88,7 +102,16 @@ export function SessionProvider({ children }) {
       if (!prev?.questions) return prev;
       return {
         ...prev,
-        questions: prev.questions.map((q) => (q.id === questionId ? { ...q, status: 'uploaded', audioRecordingUrl: URL.createObjectURL(audioBlob), recordedAt: new Date().toISOString() } : q)),
+        questions: prev.questions.map((q) =>
+          q.id === questionId
+            ? {
+                ...q,
+                status: "uploaded",
+                audioRecordingUrl: URL.createObjectURL(audioBlob),
+                recordedAt: new Date().toISOString(),
+              }
+            : q,
+        ),
       };
     });
   }, []);
@@ -113,65 +136,157 @@ export function SessionProvider({ children }) {
   }, []);
 
   /* ── Analysis (mock) ── */
-  const analyzeRecording = useCallback(async (questionId) => {
-    await new Promise((r) => setTimeout(r, 1500));
-    const analysis = {
-      speechRate: 110 + Math.floor(Math.random() * 50),
-      pauseDuration: +(0.8 + Math.random() * 3).toFixed(1),
-      fillerWords: Math.floor(Math.random() * 8),
-      coherenceScore: 55 + Math.floor(Math.random() * 40),
-      sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)],
-      confidence: +(0.7 + Math.random() * 0.25).toFixed(2),
-    };
+  const analyzeRecording = useCallback(async (questionId, audioBlob) => {
+    let analysis;
+
+    try {
+      const result = await analyzeAudioBlob(audioBlob, `${questionId}.webm`);
+      analysis = {
+        hasDementia: result.hasDementia,
+        confidenceScore: result.confidenceScore,
+        confidencePercentage: result.confidencePercentage,
+        detailedAnalysis: result.detailedAnalysis,
+        source: "ai",
+      };
+    } catch {
+      // Keep the session usable if backend is down.
+      analysis = {
+        hasDementia: Math.random() > 0.5,
+        confidenceScore: +(0.7 + Math.random() * 0.25).toFixed(2),
+        confidencePercentage: `${Math.round((0.7 + Math.random() * 0.25) * 100)}%`,
+        source: "fallback",
+      };
+    }
+
     setActiveSession((prev) => {
       if (!prev?.questions) return prev;
       return {
         ...prev,
-        questions: prev.questions.map((q) => (q.id === questionId ? { ...q, status: 'analyzed', analysis } : q)),
+        questions: prev.questions.map((q) =>
+          q.id === questionId ? { ...q, status: "analyzed", analysis } : q,
+        ),
       };
     });
+
     return analysis;
   }, []);
 
   const generateReport = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 2000));
     if (!activeSession?.questions) return null;
-    const analyzed = activeSession.questions.filter((q) => q.analysis);
-    const avgCoherence = analyzed.length ? analyzed.reduce((a, q) => a + q.analysis.coherenceScore, 0) / analyzed.length : 50;
-    const riskScore = Math.max(0, Math.min(100, Math.round(100 - avgCoherence)));
-    return {
-      riskScore,
-      classification: riskScore <= 30 ? 'healthy' : riskScore <= 60 ? 'mild-concern' : 'high-risk',
-      voiceMarkers: [
-        { name: 'Speech Rate', value: `${Math.round(analyzed.reduce((a, q) => a + q.analysis.speechRate, 0) / (analyzed.length || 1))} wpm`, status: 'Normal', reference: '110–150' },
-        { name: 'Avg Pause', value: `${(analyzed.reduce((a, q) => a + q.analysis.pauseDuration, 0) / (analyzed.length || 1)).toFixed(1)}s`, status: riskScore > 40 ? 'Elevated' : 'Normal', reference: '<3.0s' },
-        { name: 'Filler Words', value: `${Math.round(analyzed.reduce((a, q) => a + q.analysis.fillerWords, 0) / (analyzed.length || 1))}`, status: 'Normal', reference: '<5 per answer' },
-        { name: 'Coherence', value: `${Math.round(avgCoherence)}/100`, status: riskScore > 50 ? 'Low' : 'Good', reference: '>70' },
-      ],
-      recommendations: riskScore <= 30
-        ? ['Continue regular screenings', 'Healthy cognitive function observed']
-        : riskScore <= 60
-          ? ['Schedule follow-up in 2 weeks', 'Consider neuropsych evaluation']
-          : ['Urgent neurological referral recommended', 'Comprehensive assessment needed'],
-      generatedAt: new Date().toISOString(),
-      sessionId: activeSession?.id,
-      patientId: activeSession?.patientId,
-    };
+
+    const analyzedQuestions = activeSession.questions.filter((q) => q.analysis);
+
+    const audioResults = analyzedQuestions.map((q) => ({
+      question: q.questionText || "Question",
+      has_dementia: !!q.analysis?.hasDementia,
+      confidence_score: Number(q.analysis?.confidenceScore) || 0,
+    }));
+
+    const qaResponses = analyzedQuestions.map((q) => ({
+      question: q.questionText || "Question",
+      answer: q.analysis?.transcript || "Audio response analyzed.",
+    }));
+
+    try {
+      const aiReport = await generateAiReport(audioResults, qaResponses);
+      return {
+        ...aiReport,
+        sessionId: activeSession.id,
+        patientId: activeSession.patientId,
+      };
+    } catch {
+      const avgConfidence = analyzedQuestions.length
+        ? analyzedQuestions.reduce(
+            (sum, q) => sum + (Number(q.analysis?.confidenceScore) || 0.5),
+            0,
+          ) / analyzedQuestions.length
+        : 0.5;
+
+      const riskScore = Math.round(avgConfidence * 100);
+      return {
+        riskScore,
+        classification:
+          riskScore <= 30
+            ? "healthy"
+            : riskScore <= 60
+              ? "mild-concern"
+              : "high-risk",
+        confidence: avgConfidence,
+        voiceMarkers: [
+          {
+            name: "Dementia Signal Confidence",
+            value: `${Math.round(avgConfidence * 100)}%`,
+            status: riskScore > 60 ? "Elevated" : "Normal",
+            reference: "Lower is better",
+          },
+        ],
+        recommendations:
+          riskScore <= 30
+            ? [
+                "Continue regular screenings",
+                "Healthy cognitive function observed",
+              ]
+            : riskScore <= 60
+              ? [
+                  "Schedule follow-up in 2 weeks",
+                  "Consider neuropsych evaluation",
+                ]
+              : [
+                  "Urgent neurological referral recommended",
+                  "Comprehensive assessment needed",
+                ],
+        aiInsights: {
+          riskLevel:
+            riskScore <= 30 ? "Low" : riskScore <= 60 ? "Moderate" : "High",
+          audioAnalysis:
+            "Fallback analysis used because AI report service was unavailable.",
+          behavioralAnalysis:
+            "Behavioral interpretation unavailable in fallback mode.",
+          combinedInterpretation:
+            "Please retry report generation when backend service is available.",
+          recommendation: "Use this fallback result as provisional only.",
+        },
+        generatedAt: new Date().toISOString(),
+        sessionId: activeSession.id,
+        patientId: activeSession.patientId,
+      };
+    }
   }, [activeSession]);
 
-  const currentQuestion = activeSession?.questions?.[currentQuestionIndex] ?? null;
+  const currentQuestion =
+    activeSession?.questions?.[currentQuestionIndex] ?? null;
   const totalQuestions = activeSession?.questions?.length ?? 0;
-  const completedCount = activeSession?.questions?.filter((q) => q.status === 'analyzed' || q.status === 'uploaded')?.length ?? 0;
+  const completedCount =
+    activeSession?.questions?.filter(
+      (q) => q.status === "analyzed" || q.status === "uploaded",
+    )?.length ?? 0;
 
   return (
-    <SessionContext.Provider value={{
-      activeSession, currentQuestionIndex, currentQuestion, totalQuestions, completedCount,
-      recordings, isRecording, isPaused, elapsedTime,
-      startSession, pauseSession, resumeSession, endSession,
-      recordQuestion, startRecording, stopRecording,
-      nextQuestion, previousQuestion, goToQuestion,
-      analyzeRecording, generateReport,
-    }}>
+    <SessionContext.Provider
+      value={{
+        activeSession,
+        currentQuestionIndex,
+        currentQuestion,
+        totalQuestions,
+        completedCount,
+        recordings,
+        isRecording,
+        isPaused,
+        elapsedTime,
+        startSession,
+        pauseSession,
+        resumeSession,
+        endSession,
+        recordQuestion,
+        startRecording,
+        stopRecording,
+        nextQuestion,
+        previousQuestion,
+        goToQuestion,
+        analyzeRecording,
+        generateReport,
+      }}
+    >
       {children}
     </SessionContext.Provider>
   );
@@ -179,6 +294,6 @@ export function SessionProvider({ children }) {
 
 export function useSession() {
   const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error('useSession must be used within SessionProvider');
+  if (!ctx) throw new Error("useSession must be used within SessionProvider");
   return ctx;
 }

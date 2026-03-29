@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -128,7 +128,7 @@ export default function LandingPage() {
             </motion.div>
             {[
               { n: '2 min', l: 'Average Assessment', d: 'From start to report' },
-              { n: '500+', l: 'Doctors Trust EchoMind', d: 'Across 50+ hospitals' },
+              { n: '500+', l: 'Doctors Trust Sahara', d: 'Across 50+ hospitals' },
               { n: '10K+', l: 'Patients Screened', d: 'And growing monthly' },
             ].map((s, i) => (
               <motion.div key={i} variants={stagger.item} className="bg-surface rounded-2xl border border-border/60 shadow-card p-5 flex flex-col justify-end">
@@ -169,7 +169,7 @@ export default function LandingPage() {
       <section className="py-16 md:py-24">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger.container} className="mx-auto max-w-[1200px] px-6 lg:px-10">
           <motion.div variants={stagger.item} className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-navy-dark">Why Healthcare Professionals Choose EchoMind</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-navy-dark">Why Healthcare Professionals Choose Sahara</h2>
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
@@ -241,13 +241,13 @@ export default function LandingPage() {
       {/* ═══ COMPARISON TABLE ═══ */}
       <section className="py-16 md:py-24">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-[900px] px-6 lg:px-10">
-          <h2 className="text-3xl font-extrabold text-navy-dark text-center mb-10">EchoMind vs Traditional Assessments</h2>
+          <h2 className="text-3xl font-extrabold text-navy-dark text-center mb-10">Sahara vs Traditional Assessments</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[500px]">
               <thead>
                 <tr className="border-b-2 border-border/60">
                   <th className="text-left py-3 px-3 text-xs font-bold text-text-muted uppercase">Criteria</th>
-                  <th className="text-center py-3 px-3 text-xs font-bold text-deep-teal uppercase">EchoMind</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-deep-teal uppercase">Sahara</th>
                   <th className="text-center py-3 px-3 text-xs font-bold text-text-muted uppercase">Traditional</th>
                 </tr>
               </thead>
@@ -336,13 +336,13 @@ export default function LandingPage() {
       <section className="py-16 md:py-24 bg-muted/20">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-[720px] px-6 lg:px-10">
           <h2 className="text-3xl font-extrabold text-navy-dark text-center mb-10">Frequently Asked Questions</h2>
-          <FAQ question="Is this a replacement for comprehensive neuropsychological testing?" answer="No. EchoMind is a screening tool designed for early detection and longitudinal monitoring. Abnormal results should be followed up with comprehensive neuropsychological evaluation." />
+          <FAQ question="Is this a replacement for comprehensive neuropsychological testing?" answer="No. Sahara is a screening tool designed for early detection and longitudinal monitoring. Abnormal results should be followed up with comprehensive neuropsychological evaluation." />
           <FAQ question="How accurate is the AI analysis?" answer="Our voice analysis model achieves 98% accuracy validated against clinical gold-standard assessments (MoCA, MMSE) across 10,000+ samples." />
           <FAQ question="Is patient data HIPAA compliant?" answer="Yes. All data is encrypted at rest and in transit, stored on HIPAA-compliant cloud infrastructure, and we sign BAAs with all enterprise clients." />
           <FAQ question="Can I customize the questions?" answer="Absolutely. You can create custom question sets, adjust difficulty levels, and save templates for different patient populations." />
           <FAQ question="Does this integrate with my EMR?" answer="We support HL7 FHIR integration with major EMR systems including Epic, Cerner, and Athena. Custom integrations available for Enterprise plans." />
-          <FAQ question="What training is required?" answer="Minimal. Doctors can start using EchoMind after a 15-minute onboarding walkthrough. No special equipment needed — just a computer with a microphone." />
-          <FAQ question="Can I use this for telehealth visits?" answer="Yes. EchoMind works across telehealth platforms. Patients can record on their own device, and results sync to your dashboard." />
+          <FAQ question="What training is required?" answer="Minimal. Doctors can start using Sahara after a 15-minute onboarding walkthrough. No special equipment needed — just a computer with a microphone." />
+          <FAQ question="Can I use this for telehealth visits?" answer="Yes. Sahara works across telehealth platforms. Patients can record on their own device, and results sync to your dashboard." />
           <FAQ question="How do I explain this to patients?" answer="We provide patient-facing materials and consent forms. The process is simple: 'We're going to ask a few questions and record your voice to check on your brain health.'" />
         </motion.div>
       </section>
