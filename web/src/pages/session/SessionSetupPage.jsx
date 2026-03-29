@@ -12,7 +12,7 @@ const stagger = { container: { hidden: {}, visible: { transition: { staggerChild
 export default function SessionSetupPage() {
   const { patientId } = useParams();
   const navigate = useNavigate();
-  const { patients, questionBank } = useDoctor();
+  const { patients, questionBank, createSession } = useDoctor();
   const { startSession } = useSession();
   const [step, setStep] = useState(1);
   const [questionMode, setQuestionMode] = useState('standard');
@@ -22,6 +22,7 @@ export default function SessionSetupPage() {
   const [sessionNotes, setSessionNotes] = useState('');
   const [consents, setConsents] = useState({ informed: false, recording: false, quiet: false });
   const [confirmModal, setConfirmModal] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const patient = patients.find((p) => p.id === patientId);
   const standardQuestions = useMemo(() => questionBank.filter((q) => q.isDefault).slice(0, 10), [questionBank]);
@@ -34,10 +35,25 @@ export default function SessionSetupPage() {
     setCustomSelected((p) => p.includes(id) ? p.filter((x) => x !== id) : p.length < 10 ? [...p, id] : p);
   };
 
-  const handleStart = () => {
-    const session = startSession(patientId, selectedQuestions);
-    const sessionId = session?.id || `ses_${Date.now()}`;
-    navigate(`/session/active/${sessionId}`);
+  const handleStart = async () => {
+    setIsStarting(true);
+    try {
+      // Create session in Firebase first
+      const questionIds = selectedQuestions.map((q) => q.id);
+      const firebaseSession = await createSession(patientId, questionIds, {
+        location,
+        notes: sessionNotes,
+        consents,
+      });
+
+      // Then initialize the local SessionContext with the Firebase session
+      startSession(firebaseSession);
+
+      navigate(`/session/active/${firebaseSession.id}`);
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      setIsStarting(false);
+    }
   };
 
   if (!patient) return <div className="p-8 text-center"><p className="text-text-muted">Patient not found.</p></div>;
@@ -191,7 +207,7 @@ export default function SessionSetupPage() {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setConfirmModal(false)}>Cancel</Button>
-                <Button className="flex-1" onClick={handleStart}>Start Recording</Button>
+                <Button className="flex-1" onClick={handleStart} isLoading={isStarting}>Start Recording</Button>
               </div>
             </motion.div>
           </div>

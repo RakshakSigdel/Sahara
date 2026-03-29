@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,6 +6,8 @@ import {
   AlertTriangle, Bell, Shield, CreditCard, Settings, Moon, Clock, Check, Key, Monitor, Upload,
 } from 'lucide-react';
 import { useDoctor } from '../contexts/DoctorContext';
+import { changePassword, deleteAccount, reauthenticate } from '../services/authService';
+import { deleteUser } from '../services/userService';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { cn } from '../utils/cn';
@@ -37,7 +39,7 @@ function Section({ title, children, className }) {
   return <div className={cn('bg-surface rounded-xl border border-border/60 shadow-card p-6', className)}>{title && <h3 className="text-base font-bold text-navy-dark mb-5">{title}</h3>}{children}</div>;
 }
 
-function ConfirmModal({ open, onClose, onConfirm, title, description, danger }) {
+function ConfirmModal({ open, onClose, onConfirm, title, description, danger, isLoading, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-dark/40 backdrop-blur-sm px-4">
@@ -46,7 +48,8 @@ function ConfirmModal({ open, onClose, onConfirm, title, description, danger }) 
           <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', danger ? 'bg-error/10' : 'bg-warning/10')}><AlertTriangle size={20} className={danger ? 'text-error' : 'text-warning'} /></div>
           <div><h3 className="text-base font-bold text-navy-dark">{title}</h3><p className="text-sm text-text-secondary mt-1">{description}</p></div>
         </div>
-        <div className="flex gap-3"><Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button><Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} className="flex-1">Confirm</Button></div>
+        {children}
+        <div className="flex gap-3 mt-4"><Button variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} className="flex-1" isLoading={isLoading}>Confirm</Button></div>
       </motion.div>
     </div>
   );
@@ -54,25 +57,59 @@ function ConfirmModal({ open, onClose, onConfirm, title, description, danger }) 
 
 /* ═══ TABS ═══ */
 
-function ProfessionalTab({ doctor }) {
+function ProfessionalTab({ doctor, onSave }) {
+  const [formData, setFormData] = useState({
+    fullName: doctor?.fullName || '',
+    email: doctor?.email || '',
+    licenseNo: doctor?.licenseNo || doctor?.license || '',
+    speciality: doctor?.speciality?.toLowerCase() || 'neurology',
+    hospitalName: doctor?.hospitalName || doctor?.hospital || '',
+    phone: doctor?.phone || '',
+    bio: doctor?.bio || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleChange = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        fullName: formData.fullName,
+        licenseNo: formData.licenseNo,
+        speciality: formData.speciality,
+        hospitalName: formData.hospitalName,
+        phone: formData.phone,
+        bio: formData.bio,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Section title="Professional Details">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Full Name" defaultValue={doctor?.fullName} leftIcon={<User size={16} />} />
-          <Input label="Email" defaultValue={doctor?.email} leftIcon={<Mail size={16} />} disabled />
+          <Input label="Full Name" value={formData.fullName} onChange={(e) => handleChange('fullName', e.target.value)} leftIcon={<User size={16} />} />
+          <Input label="Email" value={formData.email} leftIcon={<Mail size={16} />} disabled />
           <div className="flex items-center gap-2">
-            <Input label="License Number" defaultValue={doctor?.license} leftIcon={<Award size={16} />} containerClassName="flex-1" />
+            <Input label="License Number" value={formData.licenseNo} onChange={(e) => handleChange('licenseNo', e.target.value)} leftIcon={<Award size={16} />} containerClassName="flex-1" />
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-full mt-5"><Check size={10} /> Verified</span>
           </div>
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1.5 ml-1">Specialty</label>
-            <select defaultValue={doctor?.specialty?.toLowerCase()} className="w-full h-12 px-4 border-[1.5px] border-border-strong rounded text-sm bg-transparent outline-none focus:border-deep-teal cursor-pointer">
+            <select value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)} className="w-full h-12 px-4 border-[1.5px] border-border-strong rounded text-sm bg-transparent outline-none focus:border-deep-teal cursor-pointer">
               <option value="neurology">Neurology</option><option value="geriatrics">Geriatrics</option><option value="primary-care">Primary Care</option><option value="psychiatry">Psychiatry</option><option value="other">Other</option>
             </select>
           </div>
-          <Input label="Hospital / Clinic" defaultValue={doctor?.hospital} leftIcon={<Building2 size={16} />} />
-          <Input label="Phone" defaultValue={doctor?.phone} leftIcon={<Phone size={16} />} />
+          <Input label="Hospital / Clinic" value={formData.hospitalName} onChange={(e) => handleChange('hospitalName', e.target.value)} leftIcon={<Building2 size={16} />} />
+          <Input label="Phone" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} leftIcon={<Phone size={16} />} />
         </div>
       </Section>
       <Section title="Professional Photo & Signature">
@@ -94,25 +131,50 @@ function ProfessionalTab({ doctor }) {
         </div>
       </Section>
       <Section title="Professional Bio">
-        <textarea rows={3} defaultValue="" placeholder="Brief bio for patient-facing reports (optional)…" className="w-full rounded-lg border border-border/60 px-3 py-2.5 text-sm outline-none focus:border-deep-teal focus:ring-1 focus:ring-deep-teal/15 transition-all resize-none" />
+        <textarea rows={3} value={formData.bio} onChange={(e) => handleChange('bio', e.target.value)} placeholder="Brief bio for patient-facing reports (optional)…" className="w-full rounded-lg border border-border/60 px-3 py-2.5 text-sm outline-none focus:border-deep-teal focus:ring-1 focus:ring-deep-teal/15 transition-all resize-none" />
       </Section>
-      <div className="flex justify-end"><Button leftIcon={<Save size={16} />}>Save Changes</Button></div>
+      <div className="flex items-center justify-end gap-3">
+        {saved && <span className="text-xs font-medium text-success flex items-center gap-1"><Check size={14} /> Saved!</span>}
+        <Button leftIcon={<Save size={16} />} onClick={handleSave} isLoading={saving}>Save Changes</Button>
+      </div>
     </div>
   );
 }
 
-function PracticeTab() {
+function PracticeTab({ doctor, onSave }) {
+  const [settings, setSettings] = useState({
+    defaultQuestionSet: doctor?.settings?.defaultQuestionSet || 'standard',
+    sessionDuration: doctor?.settings?.sessionDuration || 30,
+    autoSaveInterval: doctor?.settings?.autoSaveInterval || 15,
+    reportTemplate: doctor?.settings?.reportTemplate || 'standard',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({ settings });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Section title="Session Defaults">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="block text-xs font-medium text-text-muted mb-1.5">Default Question Set</label>
-            <select className="w-full h-10 px-3 border border-border-strong rounded text-sm bg-transparent outline-none cursor-pointer"><option>Standard 10-Question</option><option>Custom Set A</option></select>
+            <select value={settings.defaultQuestionSet} onChange={(e) => setSettings((p) => ({ ...p, defaultQuestionSet: e.target.value }))} className="w-full h-10 px-3 border border-border-strong rounded text-sm bg-transparent outline-none cursor-pointer"><option value="standard">Standard 10-Question</option><option value="custom-a">Custom Set A</option></select>
           </div>
-          <Input label="Session Timeout (min)" type="number" defaultValue={30} />
-          <Input label="Auto-save Interval (sec)" type="number" defaultValue={15} />
+          <Input label="Session Timeout (min)" type="number" value={settings.sessionDuration} onChange={(e) => setSettings((p) => ({ ...p, sessionDuration: Number(e.target.value) }))} />
+          <Input label="Auto-save Interval (sec)" type="number" value={settings.autoSaveInterval} onChange={(e) => setSettings((p) => ({ ...p, autoSaveInterval: Number(e.target.value) }))} />
           <div><label className="block text-xs font-medium text-text-muted mb-1.5">Report Template</label>
-            <select className="w-full h-10 px-3 border border-border-strong rounded text-sm bg-transparent outline-none cursor-pointer"><option>Standard Clinical</option><option>Detailed Research</option><option>Patient Summary</option></select>
+            <select value={settings.reportTemplate} onChange={(e) => setSettings((p) => ({ ...p, reportTemplate: e.target.value }))} className="w-full h-10 px-3 border border-border-strong rounded text-sm bg-transparent outline-none cursor-pointer"><option value="standard">Standard Clinical</option><option value="detailed">Detailed Research</option><option value="summary">Patient Summary</option></select>
           </div>
         </div>
       </Section>
@@ -127,7 +189,10 @@ function PracticeTab() {
       <Section title="EMR Integration">
         <div className="p-4 rounded-lg bg-muted/20 border border-border/40"><p className="text-sm text-text-muted">EMR integration is available on Enterprise plans. <a className="text-deep-teal font-medium hover:underline cursor-pointer">Contact sales</a> to learn more.</p></div>
       </Section>
-      <div className="flex justify-end"><Button leftIcon={<Save size={16} />}>Save Settings</Button></div>
+      <div className="flex items-center justify-end gap-3">
+        {saved && <span className="text-xs font-medium text-success flex items-center gap-1"><Check size={14} /> Saved!</span>}
+        <Button leftIcon={<Save size={16} />} onClick={handleSave} isLoading={saving}>Save Settings</Button>
+      </div>
     </div>
   );
 }
@@ -193,11 +258,81 @@ function BillingTab() {
 
 function SecurityTab() {
   const [tfa, setTfa] = useState(false);
-  const [deleteModal, setDeleteModal] = useState(null);
-  const { logout } = useDoctor();
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [passwordModal, setPasswordModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMessage, setPwMessage] = useState({ type: '', text: '' });
+  const [delLoading, setDelLoading] = useState(false);
+  const [delError, setDelError] = useState('');
+  const { logout, currentDoctor } = useDoctor();
   const navigate = useNavigate();
+
+  const handleChangePassword = async () => {
+    if (newPw !== confirmPw) {
+      setPwMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+    if (newPw.length < 8) {
+      setPwMessage({ type: 'error', text: 'New password must be at least 8 characters.' });
+      return;
+    }
+    setPwLoading(true);
+    setPwMessage({ type: '', text: '' });
+    try {
+      await changePassword(currentPw, newPw);
+      setPwMessage({ type: 'success', text: 'Password changed successfully!' });
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setTimeout(() => setPasswordModal(false), 1500);
+    } catch (err) {
+      const code = err?.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setPwMessage({ type: 'error', text: 'Current password is incorrect.' });
+      } else {
+        setPwMessage({ type: 'error', text: 'Failed to change password. Please try again.' });
+      }
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDelLoading(true);
+    setDelError('');
+    try {
+      await reauthenticate(deletePassword);
+      // Delete Firestore user doc first
+      if (currentDoctor?.id) {
+        await deleteUser(currentDoctor.id);
+      }
+      // Delete Firebase Auth account
+      await deleteAccount();
+      navigate('/');
+    } catch (err) {
+      const code = err?.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setDelError('Incorrect password. Please try again.');
+      } else {
+        setDelError('Failed to delete account. Please try again.');
+      }
+    } finally {
+      setDelLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <Section title="Change Password">
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/20">
+          <div><p className="text-sm font-semibold">Update Password</p><p className="text-xs text-text-muted">Change your login password</p></div>
+          <Button variant="outline" size="sm" leftIcon={<Key size={14} />} onClick={() => setPasswordModal(true)}>Change</Button>
+        </div>
+      </Section>
       <Section title="Two-Factor Authentication">
         <Toggle checked={tfa} onChange={setTfa} label="Enable 2FA" description="Add an extra layer of security to your account" />
         {tfa && <div className="mt-3 p-3 rounded-lg bg-success/5 border border-success/15 text-xs text-success font-medium flex items-center gap-2"><Check size={14} /> 2FA is active. Authenticator app configured.</div>}
@@ -225,18 +360,45 @@ function SecurityTab() {
           <div className="flex items-center justify-between p-4 rounded-lg bg-error/5 border border-error/15"><div><p className="text-sm font-semibold text-error">Delete Account</p><p className="text-xs text-text-muted">Permanently delete everything</p></div><Button variant="danger" size="sm" leftIcon={<Trash2 size={14} />} onClick={() => setDeleteModal(true)}>Delete</Button></div>
         </div>
       </Section>
-      <ConfirmModal open={deleteModal} onClose={() => setDeleteModal(false)} onConfirm={() => { setDeleteModal(false); logout(); navigate('/'); }} title="Delete Account?" description="This permanently deletes your account, all patient data, and session records. This cannot be undone." danger />
+
+      {/* Change Password Modal */}
+      <ConfirmModal open={passwordModal} onClose={() => { setPasswordModal(false); setPwMessage({ type: '', text: '' }); }} onConfirm={handleChangePassword} title="Change Password" description="Enter your current and new password." isLoading={pwLoading}>
+        <div className="space-y-3 mt-3">
+          <Input label="Current Password" type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
+          <Input label="New Password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+          <Input label="Confirm New Password" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
+          {pwMessage.text && <p className={cn('text-xs font-medium', pwMessage.type === 'error' ? 'text-error' : 'text-success')}>{pwMessage.text}</p>}
+        </div>
+      </ConfirmModal>
+
+      {/* Delete Account Modal */}
+      <ConfirmModal open={deleteModal} onClose={() => { setDeleteModal(false); setDelError(''); setDeletePassword(''); }} onConfirm={handleDeleteAccount} title="Delete Account?" description="This permanently deletes your account, all patient data, and session records. This cannot be undone." danger isLoading={delLoading}>
+        <div className="mt-3">
+          <Input label="Enter your password to confirm" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} />
+          {delError && <p className="text-xs text-error mt-2">{delError}</p>}
+        </div>
+      </ConfirmModal>
     </div>
   );
 }
 
 /* ═══ MAIN ═══ */
 export default function ProfilePage() {
-  const { currentDoctor, logout } = useDoctor();
+  const { currentDoctor, logout, updateProfile } = useDoctor();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('professional');
 
-  const panels = { professional: () => <ProfessionalTab doctor={currentDoctor} />, practice: PracticeTab, notifications: NotificationsTab, billing: BillingTab, security: SecurityTab };
+  const handleSaveProfile = useCallback(async (updates) => {
+    await updateProfile(updates);
+  }, [updateProfile]);
+
+  const panels = {
+    professional: () => <ProfessionalTab doctor={currentDoctor} onSave={handleSaveProfile} />,
+    practice: () => <PracticeTab doctor={currentDoctor} onSave={handleSaveProfile} />,
+    notifications: NotificationsTab,
+    billing: BillingTab,
+    security: SecurityTab,
+  };
   const Panel = panels[activeTab];
 
   return (
@@ -253,7 +415,7 @@ export default function ProfilePage() {
           <div className="text-center sm:text-left">
             <h1 className="text-2xl font-bold text-navy-dark">{currentDoctor?.fullName || 'Doctor'}</h1>
             <p className="text-sm text-text-muted mt-0.5">{currentDoctor?.email}</p>
-            <p className="text-xs text-text-muted mt-0.5">{currentDoctor?.specialty} • {currentDoctor?.hospital}</p>
+            <p className="text-xs text-text-muted mt-0.5">{currentDoctor?.speciality} • {currentDoctor?.hospitalName}</p>
           </div>
           <div className="sm:ml-auto">
             <Button variant="outline" size="sm" leftIcon={<LogOut size={14} />} onClick={() => { logout(); navigate('/'); }}>Sign Out</Button>

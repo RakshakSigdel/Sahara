@@ -29,19 +29,31 @@ export default function AddPatientPage() {
     if (valid) setStep(2);
   };
 
-  const onSubmit = (data) => {
-    const patient = addPatient({
-      fullName: data.fullName,
-      dateOfBirth: data.dateOfBirth,
-      gender: data.gender,
-      phone: data.phone,
-      email: data.email || undefined,
-      emergencyContact: { name: data.ecName, phone: data.ecPhone, relationship: data.ecRelationship },
-      medicalHistory: data.medicalHistory,
-      notes: data.notes,
-    });
-    setNewPatientId(patient.id);
-    setShowSuccess(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const patient = await addPatient({
+        fullName: data.fullName,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
+        phone: data.phone,
+        email: data.email || undefined,
+        emergencyContact: { name: data.ecName, phone: data.ecPhone, relationship: data.ecRelationship },
+        medicalHistory: data.medicalHistory,
+        notes: data.notes,
+      });
+      setNewPatientId(patient.id);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Failed to add patient:', error);
+      setSubmitError('Failed to add patient. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (showSuccess) {
@@ -164,9 +176,15 @@ export default function AddPatientPage() {
                 </label>
               </motion.div>
 
+              {submitError && (
+                <motion.div variants={stagger.item} className="px-3 py-2 rounded-lg bg-error/5 border border-error/15 text-xs text-error">
+                  {submitError}
+                </motion.div>
+              )}
+
               <motion.div variants={stagger.item} className="flex justify-between pt-3">
                 <Button variant="outline" type="button" onClick={() => setStep(1)}>Back</Button>
-                <Button type="submit">Add Patient</Button>
+                <Button type="submit" isLoading={isSubmitting}>Add Patient</Button>
               </motion.div>
             </motion.div>
           )}

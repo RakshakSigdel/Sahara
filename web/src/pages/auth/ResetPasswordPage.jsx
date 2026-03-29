@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, Brain, ArrowRight, Check, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Eye, EyeOff, Brain, ArrowRight, Check, CheckCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { cn } from '../../utils/cn';
+import { resetPassword } from '../../services/authService';
 
 function PasswordStrength({ password }) {
   const { strength, label, color, checks } = useMemo(() => {
@@ -41,7 +42,12 @@ export default function ResetPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Firebase sends the oobCode as a query parameter in the reset link
+  const oobCode = searchParams.get('oobCode');
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     defaultValues: { password: '', confirmPassword: '' },
@@ -49,13 +55,32 @@ export default function ResetPasswordPage() {
 
   const password = watch('password', '');
 
+  const formatError = useCallback((err) => {
+    const code = err?.code;
+    if (code === 'auth/expired-action-code') return 'This reset link has expired. Please request a new one.';
+    if (code === 'auth/invalid-action-code') return 'This reset link is invalid or has already been used.';
+    if (code === 'auth/weak-password') return 'Please choose a stronger password (8+ characters).';
+    return 'Unable to reset password. Please try again or request a new link.';
+  }, []);
+
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    console.log('Reset:', data);
-    setIsLoading(false);
-    setSuccess(true);
-    setTimeout(() => navigate('/auth/login'), 3000);
+    setError('');
+    try {
+      if (!oobCode) {
+        // If no oobCode, this is likely accessed directly — show a helpful message
+        setError('No reset code found. Please use the link from your password reset email.');
+        setIsLoading(false);
+        return;
+      }
+      await resetPassword(oobCode, data.password);
+      setSuccess(true);
+      setTimeout(() => navigate('/auth/login'), 3000);
+    } catch (err) {
+      setError(formatError(err));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,6 +94,13 @@ export default function ResetPasswordPage() {
               </div>
               <h1 className="text-2xl font-bold text-navy-dark text-center tracking-tight">Create New Password</h1>
               <p className="mt-2 text-text-secondary text-center text-sm">Your new password must be different from your previous one</p>
+
+              {error && (
+                <div className="flex items-start gap-2 rounded-lg border border-error/20 bg-error/5 p-3 text-sm text-error mt-4">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <span className="flex-1">{error}</span>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
                 <div>

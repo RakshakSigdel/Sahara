@@ -14,8 +14,15 @@ export function SessionProvider({ children }) {
   /* ── Session lifecycle ── */
   const startSession = useCallback((sessionDataOrPatientId, questions) => {
     let sessionData;
-    if (typeof sessionDataOrPatientId === 'string' && Array.isArray(questions)) {
-      // Called as startSession(patientId, questions) from SessionSetupPage
+
+    if (typeof sessionDataOrPatientId === 'object' && sessionDataOrPatientId !== null && sessionDataOrPatientId.id) {
+      // Called with a Firebase session object (from DoctorContext.createSession)
+      sessionData = {
+        ...sessionDataOrPatientId,
+        status: 'in-progress',
+      };
+    } else if (typeof sessionDataOrPatientId === 'string' && Array.isArray(questions)) {
+      // Legacy: Called as startSession(patientId, questions) from SessionSetupPage
       sessionData = {
         id: `ses_${Date.now()}`,
         patientId: sessionDataOrPatientId,
@@ -36,6 +43,7 @@ export function SessionProvider({ children }) {
     } else {
       sessionData = sessionDataOrPatientId;
     }
+
     setActiveSession(sessionData);
     setCurrentQuestionIndex(0);
     setRecordings({});
@@ -43,6 +51,7 @@ export function SessionProvider({ children }) {
     setIsPaused(false);
     setElapsedTime(0);
     // Start session timer
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsedTime((t) => t + 1), 1000);
     return sessionData;
   }, []);
@@ -64,6 +73,9 @@ export function SessionProvider({ children }) {
     setIsPaused(false);
     const session = activeSession;
     setActiveSession(null);
+    setElapsedTime(0);
+    setCurrentQuestionIndex(0);
+    setRecordings({});
     return session;
   }, [activeSession]);
 
@@ -142,6 +154,8 @@ export function SessionProvider({ children }) {
           ? ['Schedule follow-up in 2 weeks', 'Consider neuropsych evaluation']
           : ['Urgent neurological referral recommended', 'Comprehensive assessment needed'],
       generatedAt: new Date().toISOString(),
+      sessionId: activeSession?.id,
+      patientId: activeSession?.patientId,
     };
   }, [activeSession]);
 

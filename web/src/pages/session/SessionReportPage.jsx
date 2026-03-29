@@ -33,16 +33,24 @@ export default function SessionReportPage() {
 
   const trendData = patientSessions.map((s, i) => ({ session: `#${i + 1}`, score: s.overallReport.riskScore, date: new Date(s.sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }));
 
-  // Mock biomarkers
-  const biomarkers = [
-    { marker: 'Speech Rate', value: '125 wpm', range: '110–150 wpm', status: 'normal' },
-    { marker: 'Pause Duration', value: '2.8s', range: '<2.5s', status: 'elevated' },
-    { marker: 'Filler Word Ratio', value: '8%', range: '<10%', status: 'normal' },
-    { marker: 'Semantic Coherence', value: '87/100', range: '>80', status: 'normal' },
-    { marker: 'Verbal Fluency', value: '14 w/min', range: '>12', status: 'normal' },
-    { marker: 'Response Latency', value: '1.2s', range: '<2s', status: 'normal' },
-    { marker: 'Lexical Diversity', value: '0.78', range: '>0.7', status: 'normal' },
+  // Use real voice markers from report when available, fall back to defaults
+  const defaultBiomarkers = [
+    { marker: 'Speech Rate', value: '—', range: '110–150 wpm', status: 'normal' },
+    { marker: 'Pause Duration', value: '—', range: '<2.5s', status: 'normal' },
+    { marker: 'Filler Word Ratio', value: '—', range: '<10%', status: 'normal' },
+    { marker: 'Semantic Coherence', value: '—', range: '>80', status: 'normal' },
+    { marker: 'Verbal Fluency', value: '—', range: '>12', status: 'normal' },
+    { marker: 'Response Latency', value: '—', range: '<2s', status: 'normal' },
+    { marker: 'Lexical Diversity', value: '—', range: '>0.7', status: 'normal' },
   ];
+  const biomarkers = report?.voiceMarkers
+    ? report.voiceMarkers.map((m) => ({
+        marker: m.name,
+        value: m.value,
+        range: m.reference || '—',
+        status: (m.status || '').toLowerCase() === 'elevated' || (m.status || '').toLowerCase() === 'low' ? 'elevated' : 'normal',
+      }))
+    : defaultBiomarkers;
 
   const recommendations = score <= 30
     ? ['Continue annual screening', 'Maintain brain-healthy lifestyle', 'No immediate intervention needed']

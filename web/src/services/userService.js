@@ -11,6 +11,11 @@ import {
 } from "firebase/firestore";
 
 const USERS_COLLECTION = "users";
+const DEFAULT_SETTINGS = {
+  defaultQuestionSet: [],
+  sessionDuration: 30,
+  autoSaveInterval: 15,
+};
 
 /**
  * Create a new user document (called after auth user is created)
@@ -18,19 +23,36 @@ const USERS_COLLECTION = "users";
  * @param {Object} profileData - User profile information
  * @returns {Promise<void>}
  */
-export async function createUser(uid, profileData) {
-  const { fullName, licenseNo, hospitalName, speciality, phone, email } =
-    profileData;
+export async function createUser(uid, profileData = {}) {
+  const {
+    fullName = "",
+    licenseNo = "",
+    hospitalName = "",
+    speciality = "",
+    phone = "",
+    email = "",
+    approvalStatus = "approved",
+    role = "doctor",
+    settings = {},
+    termsAcceptedAt = serverTimestamp(),
+    hipaaAcceptedAt = serverTimestamp(),
+  } = profileData;
 
   try {
     await setDoc(doc(db, USERS_COLLECTION, uid), {
       uid,
+      role,
       fullName,
       licenseNo,
       hospitalName,
       speciality,
       phone,
       email,
+      approvalStatus,
+      approvedAt: approvalStatus === "approved" ? serverTimestamp() : null,
+      termsAcceptedAt,
+      hipaaAcceptedAt,
+      settings: { ...DEFAULT_SETTINGS, ...settings },
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -78,24 +100,11 @@ export async function getUser(id) {
  * @param {Object} updateData - Update data (must include id)
  * @returns {Promise<void>}
  */
-export async function updateUser({
-  id,
-  email,
-  fullName,
-  licenseNo,
-  hospitalName,
-  speciality,
-  phone,
-}) {
+export async function updateUser(id, updateData = {}) {
   try {
     const docRef = doc(db, USERS_COLLECTION, id);
     await updateDoc(docRef, {
-      email,
-      fullName,
-      licenseNo,
-      hospitalName,
-      speciality,
-      phone,
+      ...updateData,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

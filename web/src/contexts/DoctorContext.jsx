@@ -7,8 +7,12 @@ import {
 } from "react";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { login as loginAuth } from "../services/authService";
-import { getUser } from "../services/userService";
+import {
+  register as registerAuth,
+  login as loginAuth,
+  logout as logoutAuth,
+} from "../services/authService";
+import { getUser, updateUser as updateUserFirebase } from "../services/userService";
 import {
   getPatientsByDoctor,
   createPatient as createPatientFirebase,
@@ -28,6 +32,10 @@ import {
   createQuestion as createQuestionFirebase,
   deleteQuestion as deleteQuestionFirebase,
 } from "../services/questionService";
+import {
+  getReportsByDoctor,
+  createReport as createReportFirebase,
+} from "../services/reportService";
 
 const DoctorContext = createContext(null);
 
@@ -36,6 +44,7 @@ export function DoctorProvider({ children }) {
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [questionBank, setQuestionBank] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -77,10 +86,14 @@ export function DoctorProvider({ children }) {
           // Load all questions
           const questionsData = await getAllQuestions();
           setQuestionBank(questionsData);
+
+          const reportsData = await getReportsByDoctor(currentDoctor.id);
+          setReports(reportsData);
         } else {
           setPatients([]);
           setSessions([]);
           setQuestionBank([]);
+          setReports([]);
         }
       } catch (error) {
         console.error("Error loading Firebase data:", error);
@@ -94,6 +107,18 @@ export function DoctorProvider({ children }) {
     }
   }, [currentDoctor, authLoading]);
 
+  /* ── Auth ── */
+  const signup = useCallback(async (email, password, userData = {}) => {
+    try {
+      const authUser = await registerAuth(email, password, userData);
+      // onAuthStateChanged will pick up the new user and set currentDoctor
+      return authUser;
+    } catch (error) {
+      console.error("Error signing up:", error);
+      throw error;
+    }
+  }, []);
+
   const login = useCallback(async (email, password) => {
     try {
       const user = await loginAuth(email, password);
@@ -104,8 +129,13 @@ export function DoctorProvider({ children }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await logoutAuth();
     setCurrentDoctor(null);
+    setPatients([]);
+    setSessions([]);
+    setQuestionBank([]);
+    setReports([]);
   }, []);
 
   const resetData = useCallback(async () => {
@@ -113,6 +143,21 @@ export function DoctorProvider({ children }) {
     setSessions([]);
     setQuestionBank([]);
   }, []);
+
+  /* ── Doctor Profile ── */
+  const updateProfile = useCallback(
+    async (updates) => {
+      try {
+        if (!currentDoctor?.id) throw new Error("No authenticated doctor");
+        await updateUserFirebase(currentDoctor.id, updates);
+        setCurrentDoctor((prev) => ({ ...prev, ...updates }));
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        throw error;
+      }
+    },
+    [currentDoctor],
+  );
 
   /* ── Patients ── */
   const addPatient = useCallback(
@@ -167,13 +212,24 @@ export function DoctorProvider({ children }) {
 
   /* ── Sessions ── */
   const createSession = useCallback(
-    async (patientId, questionIds) => {
+    async (patientId, questionIds, sessionMeta = {}) => {
       try {
+        if (!currentDoctor?.id) throw new Error("No authenticated doctor");
+        const sessionDate = sessionMeta.sessionDate
+          ? new Date(sessionMeta.sessionDate).toISOString()
+          : new Date().toISOString();
         const sessionData = {
           patientId,
-          doctorId: currentDoctor?.id,
-          sessionDate: new Date().toISOString(),
+          doctorId: currentDoctor.id,
+          sessionDate,
           status: "active",
+          location: sessionMeta.location || "in-office",
+          notes: sessionMeta.notes || "",
+          consents: {
+            informed: !!sessionMeta.consents?.informed,
+            recording: !!sessionMeta.consents?.recording,
+            quiet: !!sessionMeta.consents?.quiet,
+          },
           questions: questionIds.map((qid, i) => {
             const q = questionBank.find((x) => x.id === qid);
             return {
@@ -185,11 +241,13 @@ export function DoctorProvider({ children }) {
               status: "pending",
               analysis: null,
               recordedAt: null,
+              questionId: qid,
+              category: q?.category || "general",
+              expectedDuration: q?.expectedDuration || 60,
             };
           }),
           overallReport: null,
           sessionDuration: 0,
-          notes: "",
         };
         const sessionId = await createSessionFirebase(sessionData);
         const newSession = { id: sessionId, ...sessionData };
@@ -302,15 +360,39 @@ export function DoctorProvider({ children }) {
     }
   }, []);
 
+  /* ── Reports ── */
+  const addReport = useCallback(
+    async (reportData) => {
+      try {
+        const fullReport = {
+          ...reportData,
+          doctorId: currentDoctor?.id,
+        };
+        const reportId = await createReportFirebase(fullReport);
+        const newReport = { id: reportId, ...fullReport };
+        setReports((prev) => [newReport, ...prev.filter((r) => r.id !== newReport.id)]);
+        return newReport;
+      } catch (error) {
+        console.error("Error saving report:", error);
+        // Still update local state even if Firestore fails
+        setReports((prev) => [reportData, ...prev.filter((r) => r.id !== reportData.id)]);
+        return reportData;
+      }
+    },
+    [currentDoctor],
+  );
+
   return (
     <DoctorContext.Provider
       value={{
         currentDoctor,
         loading: loading || authLoading,
         isAuthenticated: !!currentDoctor,
+        signup,
         login,
         logout,
         resetData,
+        updateProfile,
         patients,
         addPatient,
         updatePatient,
@@ -326,6 +408,8 @@ export function DoctorProvider({ children }) {
         questionBank,
         addQuestion,
         deleteQuestion,
+        reports,
+        addReport,
       }}
     >
       {children}

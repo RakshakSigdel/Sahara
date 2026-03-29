@@ -1,25 +1,40 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { Mail, Brain, ArrowLeft, KeyRound, CheckCircle, ArrowRight } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { sendResetEmail } from '../../services/authService';
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
   const { register, handleSubmit, formState: { errors }, getValues } = useForm({
     defaultValues: { email: '' },
   });
 
+  const formatError = useCallback((err) => {
+    const code = err?.code;
+    if (code === 'auth/user-not-found') return 'No account found with this email address.';
+    if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
+    if (code === 'auth/too-many-requests') return 'Too many attempts. Please wait a few minutes and try again.';
+    return 'Unable to send reset email. Please try again.';
+  }, []);
+
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    console.log('Reset email:', data);
-    setIsLoading(false);
-    setSent(true);
+    setError('');
+    try {
+      await sendResetEmail(data.email);
+      setSent(true);
+    } catch (err) {
+      setError(formatError(err));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,6 +57,12 @@ export default function ForgotPasswordPage() {
               <p className="mt-2 text-text-secondary text-center text-sm">
                 Enter your email and we&apos;ll send reset instructions
               </p>
+
+              {error && (
+                <div className="mt-4 px-3 py-2 rounded-lg bg-error/5 border border-error/15 text-xs text-error">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
                 <Input
@@ -71,7 +92,7 @@ export default function ForgotPasswordPage() {
                 <span className="font-semibold text-text-primary">{getValues('email')}</span>
               </p>
               <p className="mt-4 text-xs text-text-muted">Didn&apos;t receive it? Check your spam folder or try again.</p>
-              <Button variant="outline" onClick={() => setSent(false)} className="mt-6">
+              <Button variant="outline" onClick={() => { setSent(false); setError(''); }} className="mt-6">
                 Try Another Email
               </Button>
             </motion.div>
