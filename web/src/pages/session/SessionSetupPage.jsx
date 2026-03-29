@@ -36,7 +36,8 @@ export default function SessionSetupPage() {
 
   const handleStart = () => {
     const session = startSession(patientId, selectedQuestions);
-    navigate(`/session/active/${session?.id || 'new'}`);
+    const sessionId = session?.id || `ses_${Date.now()}`;
+    navigate(`/session/active/${sessionId}`);
   };
 
   if (!patient) return <div className="p-8 text-center"><p className="text-text-muted">Patient not found.</p></div>;

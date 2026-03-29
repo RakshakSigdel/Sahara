@@ -12,7 +12,30 @@ export function SessionProvider({ children }) {
   const timerRef = useRef(null);
 
   /* ── Session lifecycle ── */
-  const startSession = useCallback((sessionData) => {
+  const startSession = useCallback((sessionDataOrPatientId, questions) => {
+    let sessionData;
+    if (typeof sessionDataOrPatientId === 'string' && Array.isArray(questions)) {
+      // Called as startSession(patientId, questions) from SessionSetupPage
+      sessionData = {
+        id: `ses_${Date.now()}`,
+        patientId: sessionDataOrPatientId,
+        questions: questions.map((q, i) => ({
+          id: q.id || `sq_${Date.now()}_${i}`,
+          questionText: q.questionText || '',
+          category: q.category || 'General',
+          expectedDuration: q.expectedDuration || 60,
+          order: i + 1,
+          status: 'pending',
+          analysis: null,
+          audioRecordingUrl: null,
+          recordedAt: null,
+        })),
+        status: 'in-progress',
+        sessionDate: new Date().toISOString(),
+      };
+    } else {
+      sessionData = sessionDataOrPatientId;
+    }
     setActiveSession(sessionData);
     setCurrentQuestionIndex(0);
     setRecordings({});
@@ -21,6 +44,7 @@ export function SessionProvider({ children }) {
     setElapsedTime(0);
     // Start session timer
     timerRef.current = setInterval(() => setElapsedTime((t) => t + 1), 1000);
+    return sessionData;
   }, []);
 
   const pauseSession = useCallback(() => {
@@ -49,7 +73,7 @@ export function SessionProvider({ children }) {
     setIsRecording(false);
     // Update question status in activeSession
     setActiveSession((prev) => {
-      if (!prev) return prev;
+      if (!prev?.questions) return prev;
       return {
         ...prev,
         questions: prev.questions.map((q) => (q.id === questionId ? { ...q, status: 'uploaded', audioRecordingUrl: URL.createObjectURL(audioBlob), recordedAt: new Date().toISOString() } : q)),
@@ -63,7 +87,7 @@ export function SessionProvider({ children }) {
   /* ── Navigation ── */
   const nextQuestion = useCallback(() => {
     setCurrentQuestionIndex((i) => {
-      if (!activeSession) return i;
+      if (!activeSession?.questions) return i;
       return Math.min(i + 1, activeSession.questions.length - 1);
     });
   }, [activeSession]);
@@ -88,7 +112,7 @@ export function SessionProvider({ children }) {
       confidence: +(0.7 + Math.random() * 0.25).toFixed(2),
     };
     setActiveSession((prev) => {
-      if (!prev) return prev;
+      if (!prev?.questions) return prev;
       return {
         ...prev,
         questions: prev.questions.map((q) => (q.id === questionId ? { ...q, status: 'analyzed', analysis } : q)),
@@ -99,7 +123,7 @@ export function SessionProvider({ children }) {
 
   const generateReport = useCallback(async () => {
     await new Promise((r) => setTimeout(r, 2000));
-    if (!activeSession) return null;
+    if (!activeSession?.questions) return null;
     const analyzed = activeSession.questions.filter((q) => q.analysis);
     const avgCoherence = analyzed.length ? analyzed.reduce((a, q) => a + q.analysis.coherenceScore, 0) / analyzed.length : 50;
     const riskScore = Math.max(0, Math.min(100, Math.round(100 - avgCoherence)));
@@ -121,9 +145,9 @@ export function SessionProvider({ children }) {
     };
   }, [activeSession]);
 
-  const currentQuestion = activeSession?.questions[currentQuestionIndex] || null;
-  const totalQuestions = activeSession?.questions.length || 0;
-  const completedCount = activeSession?.questions.filter((q) => q.status === 'analyzed' || q.status === 'uploaded').length || 0;
+  const currentQuestion = activeSession?.questions?.[currentQuestionIndex] ?? null;
+  const totalQuestions = activeSession?.questions?.length ?? 0;
+  const completedCount = activeSession?.questions?.filter((q) => q.status === 'analyzed' || q.status === 'uploaded')?.length ?? 0;
 
   return (
     <SessionContext.Provider value={{
