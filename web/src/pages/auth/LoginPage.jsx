@@ -38,7 +38,7 @@ function DoctorIllustration() {
             <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs font-medium">{chip.icon} {chip.label}</span>
           ))}
         </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="absolute bottom-12 left-8 right-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="w-full max-w-md mx-auto mt-12">
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/15 text-left">
             <p className="text-white/80 text-sm italic leading-relaxed">&ldquo;EchoMind detected subtle speech pattern changes 18 months before clinical diagnosis. An invaluable screening tool.&rdquo;</p>
             <p className="text-white/50 text-xs mt-3">— Dr. Patel, Neurologist, Stanford Medical</p>

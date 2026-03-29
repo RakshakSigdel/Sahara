@@ -15,6 +15,21 @@ import {
 
 const REPORTS_COLLECTION = "reports";
 
+function sortByCreatedAtDesc(items) {
+  const valueOf = (val) => {
+    if (!val) return 0;
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      const parsed = Date.parse(val);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof val.toMillis === "function") return val.toMillis();
+    if (typeof val.toDate === "function") return val.toDate().getTime();
+    return 0;
+  };
+  return items.sort((a, b) => valueOf(b.createdAt) - valueOf(a.createdAt));
+}
+
 /**
  * Create a new report
  * @param {Object} reportData - Report information
@@ -62,10 +77,10 @@ export async function getReportsByPatient(patientId) {
     const q = query(
       collection(db, REPORTS_COLLECTION),
       where("patientId", "==", patientId),
-      orderBy("createdAt", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const reports = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByCreatedAtDesc(reports);
   } catch (error) {
     console.error("Error fetching patient reports:", error);
     throw error;
@@ -82,10 +97,10 @@ export async function getReportsByDoctor(doctorId) {
     const q = query(
       collection(db, REPORTS_COLLECTION),
       where("doctorId", "==", doctorId),
-      orderBy("createdAt", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const reports = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByCreatedAtDesc(reports);
   } catch (error) {
     console.error("Error fetching doctor reports:", error);
     throw error;
@@ -120,10 +135,10 @@ export async function getReportsByRiskLevel(riskLevel) {
     const q = query(
       collection(db, REPORTS_COLLECTION),
       where("classification", "==", riskLevel),
-      orderBy("createdAt", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const reports = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByCreatedAtDesc(reports);
   } catch (error) {
     console.error("Error fetching reports by risk level:", error);
     throw error;

@@ -15,6 +15,21 @@ import {
 
 const SESSIONS_COLLECTION = "sessions";
 
+function sortByDateDesc(items, field) {
+  const valueOf = (val) => {
+    if (!val) return 0;
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      const parsed = Date.parse(val);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof val.toMillis === "function") return val.toMillis();
+    if (typeof val.toDate === "function") return val.toDate().getTime();
+    return 0;
+  };
+  return items.sort((a, b) => valueOf(b[field]) - valueOf(a[field]));
+}
+
 /**
  * Create a new session
  * @param {Object} sessionData - Session information
@@ -63,10 +78,10 @@ export async function getSessionsByPatient(patientId) {
     const q = query(
       collection(db, SESSIONS_COLLECTION),
       where("patientId", "==", patientId),
-      orderBy("sessionDate", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const sessions = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByDateDesc(sessions, "sessionDate");
   } catch (error) {
     console.error("Error fetching patient sessions:", error);
     throw error;
@@ -83,10 +98,10 @@ export async function getSessionsByDoctor(doctorId) {
     const q = query(
       collection(db, SESSIONS_COLLECTION),
       where("doctorId", "==", doctorId),
-      orderBy("sessionDate", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const sessions = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByDateDesc(sessions, "sessionDate");
   } catch (error) {
     console.error("Error fetching doctor sessions:", error);
     throw error;
@@ -121,10 +136,10 @@ export async function getSessionsByStatus(status) {
     const q = query(
       collection(db, SESSIONS_COLLECTION),
       where("status", "==", status),
-      orderBy("sessionDate", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const sessions = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return sortByDateDesc(sessions, "sessionDate");
   } catch (error) {
     console.error("Error fetching sessions by status:", error);
     throw error;

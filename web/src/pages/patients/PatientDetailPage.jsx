@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Mic, Edit, MoreHorizontal, Calendar, Activity, Clock, TrendingUp, FileText, ChevronRight, Check, AlertCircle, Download } from 'lucide-react';
@@ -9,8 +9,37 @@ import { cn } from '../../utils/cn';
 
 const stagger = { container: { hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }, item: { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } } };
 
-function calcAge(dob) { return Math.floor((Date.now() - new Date(dob).getTime()) / 31557600000); }
-function timeAgo(d) { if (!d) return 'Never'; const diff = (Date.now() - new Date(d).getTime()) / 86400000; if (diff < 1) return 'Today'; if (diff < 2) return 'Yesterday'; if (diff < 30) return `${Math.floor(diff)}d ago`; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function toJsDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000 + Math.floor(value.nanoseconds || 0) / 1e6);
+  return new Date(value);
+}
+
+function calcAge(dob) {
+  const date = toJsDate(dob);
+  if (!date || Number.isNaN(date.getTime())) return '—';
+  return Math.floor((Date.now() - date.getTime()) / 31557600000);
+}
+
+function timeAgo(value) {
+  const date = toJsDate(value);
+  if (!date || Number.isNaN(date.getTime())) return 'Never';
+  const diffDays = (Date.now() - date.getTime()) / 86400000;
+  if (diffDays < 1) return 'Today';
+  if (diffDays < 2) return 'Yesterday';
+  if (diffDays < 30) return `${Math.floor(diffDays)}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatDate(value, options) {
+  const date = toJsDate(value);
+  if (!date || Number.isNaN(date.getTime())) return '—';
+  const hasTime = options?.timeStyle || options?.hour != null || options?.minute != null || options?.second != null;
+  const method = hasTime ? 'toLocaleString' : 'toLocaleDateString';
+  return date[method]('en-US', options);
+}
 function riskColor(s) { if (s <= 30) return 'success'; if (s <= 60) return 'warning'; return 'error'; }
 function riskLabel(s) { if (s <= 30) return 'Healthy'; if (s <= 60) return 'Mild Concern'; return 'High Risk'; }
 
@@ -22,22 +51,45 @@ function ChartTip({ active, payload }) {
 export default function PatientDetailPage() {
   const { patientId } = useParams();
   const navigate = useNavigate();
-  const { patients, sessions, updatePatient } = useDoctor();
-  const [tab, setTab] = useState('overview');
+  const { patients, updatePatient, loading, getSessionsByPatient } = useDoctor();
+  const [tab, setTab] = useState('history');
   const [expandedSession, setExpandedSession] = useState(null);
   const [notes, setNotes] = useState('');
+  const [sessionState, setSessionState] = useState({ data: [], loading: false, error: '' });
 
   const patient = patients.find((p) => p.id === patientId);
-  const patientSessions = useMemo(() => sessions.filter((s) => s.patientId === patientId).sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate)), [sessions, patientId]);
-  const completed = useMemo(() => patientSessions.filter((s) => s.status === 'completed' && s.overallReport), [patientSessions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!patientId) return () => { cancelled = true; };
+    setSessionState((prev) => ({ ...prev, loading: true, error: '' }));
+    getSessionsByPatient(patientId)
+      .then((data) => {
+        if (!cancelled) {
+          setSessionState({ data: data || [], loading: false, error: '' });
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('Failed to load sessions for patient detail:', err);
+          setSessionState({ data: [], loading: false, error: 'Unable to load session history.' });
+        }
+      });
+    return () => { cancelled = true; };
+  }, [patientId, getSessionsByPatient]);
+
+  const { data: remoteSessions, loading: sessionsLoading, error: sessionsError } = sessionState;
+  const completed = useMemo(() => remoteSessions.filter((s) => s.status === 'completed' && s.overallReport), [remoteSessions]);
   const latest = completed[0];
   const avgScore = completed.length ? +(completed.reduce((a, s) => a + s.overallReport.riskScore, 0) / completed.length).toFixed(1) : null;
 
   const chartData = useMemo(() => completed.slice().reverse().map((s, i) => ({
     session: `#${i + 1}`,
     score: s.overallReport.riskScore,
-    date: new Date(s.sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: formatDate(s.sessionDate, { month: 'short', day: 'numeric' }),
   })), [completed]);
+
+  if (loading) return <div className="p-8 text-center"><p className="text-text-muted">Loading patient details…</p></div>;
 
   if (!patient) return <div className="p-8 text-center"><p className="text-text-muted">Patient not found.</p><Button variant="outline" onClick={() => navigate('/patients')} className="mt-4">Back to Patients</Button></div>;
 
@@ -59,7 +111,7 @@ export default function PatientDetailPage() {
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-navy-dark">{patient.fullName}</h1>
             <p className="text-sm text-text-muted">{calcAge(patient.dateOfBirth)} yrs • {patient.gender === 'male' ? 'Male' : 'Female'} • {patient.id}</p>
-            <p className="text-xs text-text-muted mt-0.5">Patient since {new Date(patient.addedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            <p className="text-xs text-text-muted mt-0.5">Patient since {formatDate(patient.addedDate, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -79,6 +131,12 @@ export default function PatientDetailPage() {
       {tab === 'overview' && (
         <div className="grid lg:grid-cols-5 gap-5">
           <div className="lg:col-span-3 space-y-5">
+            {!latest && sessionsLoading && (
+              <div className="bg-surface rounded-xl border border-border/60 shadow-card p-5 text-sm text-text-muted">Loading session overview…</div>
+            )}
+            {!latest && sessionsError && (
+              <div className="bg-error/5 border border-error/20 text-error text-sm rounded-xl p-4">{sessionsError}</div>
+            )}
             {/* Latest Session */}
             {latest && (
               <motion.div variants={stagger.item} className="bg-surface rounded-xl border border-border/60 shadow-card p-5">
@@ -95,7 +153,7 @@ export default function PatientDetailPage() {
                   </div>
                   <div className="flex-1">
                     <span className={cn('inline-block text-xs font-bold px-2.5 py-1 rounded-full mb-2', `bg-${riskColor(latest.overallReport.riskScore)}/10 text-${riskColor(latest.overallReport.riskScore)}`)}>{riskLabel(latest.overallReport.riskScore)}</span>
-                    <p className="text-sm text-text-secondary">{new Date(latest.sessionDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="text-sm text-text-secondary">{formatDate(latest.sessionDate, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate(`/session/report/${latest.id}`)}>View Full Report</Button>
                   </div>
                 </div>
@@ -131,7 +189,7 @@ export default function PatientDetailPage() {
               {[
                 { label: 'Total Sessions', value: patient.totalSessions, icon: <Activity size={14} /> },
                 { label: 'Avg Risk Score', value: avgScore ?? '—', icon: <TrendingUp size={14} /> },
-                { label: 'First Session', value: completed.length ? new Date(completed[completed.length - 1].sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—', icon: <Calendar size={14} /> },
+                { label: 'First Session', value: completed.length ? formatDate(completed[completed.length - 1].sessionDate, { month: 'short', day: 'numeric', year: 'numeric' }) : '—', icon: <Calendar size={14} /> },
                 { label: 'Last Session', value: timeAgo(patient.lastSessionDate), icon: <Clock size={14} /> },
               ].map((s) => (
                 <div key={s.label} className="flex items-center justify-between">
@@ -153,8 +211,10 @@ export default function PatientDetailPage() {
       {/* HISTORY TAB */}
       {tab === 'history' && (
         <div className="space-y-3">
-          {patientSessions.length === 0 && <p className="text-sm text-text-muted text-center py-12">No sessions yet. <button className="text-deep-teal font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/session/setup/${patientId}`)}>Start one now</button></p>}
-          {patientSessions.map((s, i) => {
+          {remoteSessions.length === 0 && !sessionsLoading && <p className="text-sm text-text-muted text-center py-12">No sessions yet. <button className="text-deep-teal font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/session/setup/${patientId}`)}>Start one now</button></p>}
+          {sessionsLoading && <p className="text-sm text-text-muted text-center py-8">Loading session history…</p>}
+          {sessionsError && <p className="text-sm text-error text-center py-4">{sessionsError}</p>}
+          {remoteSessions.map((s, i) => {
             const score = s.overallReport?.riskScore;
             const expanded = expandedSession === s.id;
             return (
@@ -165,8 +225,8 @@ export default function PatientDetailPage() {
                       {s.status === 'completed' ? <Check size={14} /> : <AlertCircle size={14} />}
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-text-primary">Session #{patientSessions.length - i}</p>
-                      <p className="text-xs text-text-muted">{new Date(s.sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                      <p className="text-sm font-semibold text-text-primary">Session #{remoteSessions.length - i}</p>
+                      <p className="text-xs text-text-muted">{formatDate(s.sessionDate, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -212,8 +272,8 @@ export default function PatientDetailPage() {
           </div>
           <hr className="border-border/40" />
           <div className="text-xs text-text-muted space-y-1">
-            <p>Added: {new Date(patient.addedDate).toLocaleString()}</p>
-            <p>Last session: {patient.lastSessionDate ? new Date(patient.lastSessionDate).toLocaleString() : 'None'}</p>
+            <p>Added: {formatDate(patient.addedDate, { dateStyle: 'medium', timeStyle: 'short' })}</p>
+            <p>Last session: {patient.lastSessionDate ? formatDate(patient.lastSessionDate, { dateStyle: 'medium', timeStyle: 'short' }) : 'None'}</p>
           </div>
           <Button variant="outline" leftIcon={<Edit size={14} />} onClick={() => navigate(`/patients/${patientId}/edit`)}>Edit Medical Info</Button>
         </motion.div>

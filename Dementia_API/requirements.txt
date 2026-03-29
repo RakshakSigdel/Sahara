@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+transformers
+torch
+librosa
+soundfile
+python-multipart
+google-genai
+python-dotenv
