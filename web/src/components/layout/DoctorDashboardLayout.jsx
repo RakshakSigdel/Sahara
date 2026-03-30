@@ -41,7 +41,7 @@ export default function DoctorDashboardLayout({ children }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-deep-teal to-sage flex items-center justify-center">
             <Brain size={18} className="text-white" />
           </div>
-          <span className="text-lg font-bold text-navy-dark tracking-tight">Sahara</span>
+          <span className="text-lg font-bold text-navy-dark tracking-tight">Bhul Rakshak</span>
         </Link>
 
         {/* Nav links */}
@@ -95,7 +95,7 @@ export default function DoctorDashboardLayout({ children }) {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-deep-teal to-sage flex items-center justify-center">
                     <Brain size={18} className="text-white" />
                   </div>
-                  <span className="text-lg font-bold text-navy-dark">Sahara</span>
+                  <span className="text-lg font-bold text-navy-dark">Bhul Rakshak</span>
                 </div>
                 <button onClick={() => setSidebarOpen(false)} className="p-1 text-text-muted cursor-pointer"><X size={20} /></button>
               </div>

@@ -137,38 +137,33 @@ export function SessionProvider({ children }) {
 
   /* ── Analysis (mock) ── */
   const analyzeRecording = useCallback(async (questionId, audioBlob) => {
-    let analysis;
+    if (!questionId) throw new Error("Question ID is required for analysis");
 
     try {
       const result = await analyzeAudioBlob(audioBlob, `${questionId}.webm`);
-      analysis = {
+      const analysis = {
         hasDementia: result.hasDementia,
         confidenceScore: result.confidenceScore,
         confidencePercentage: result.confidencePercentage,
         detailedAnalysis: result.detailedAnalysis,
         source: "ai",
       };
-    } catch {
-      // Keep the session usable if backend is down.
-      analysis = {
-        hasDementia: Math.random() > 0.5,
-        confidenceScore: +(0.7 + Math.random() * 0.25).toFixed(2),
-        confidencePercentage: `${Math.round((0.7 + Math.random() * 0.25) * 100)}%`,
-        source: "fallback",
-      };
+
+      setActiveSession((prev) => {
+        if (!prev?.questions) return prev;
+        return {
+          ...prev,
+          questions: prev.questions.map((q) =>
+            q.id === questionId ? { ...q, status: "analyzed", analysis } : q,
+          ),
+        };
+      });
+
+      return analysis;
+    } catch (error) {
+      console.error("Failed to analyze recording", error);
+      throw error;
     }
-
-    setActiveSession((prev) => {
-      if (!prev?.questions) return prev;
-      return {
-        ...prev,
-        questions: prev.questions.map((q) =>
-          q.id === questionId ? { ...q, status: "analyzed", analysis } : q,
-        ),
-      };
-    });
-
-    return analysis;
   }, []);
 
   const generateReport = useCallback(async () => {
@@ -194,62 +189,9 @@ export function SessionProvider({ children }) {
         sessionId: activeSession.id,
         patientId: activeSession.patientId,
       };
-    } catch {
-      const avgConfidence = analyzedQuestions.length
-        ? analyzedQuestions.reduce(
-            (sum, q) => sum + (Number(q.analysis?.confidenceScore) || 0.5),
-            0,
-          ) / analyzedQuestions.length
-        : 0.5;
-
-      const riskScore = Math.round(avgConfidence * 100);
-      return {
-        riskScore,
-        classification:
-          riskScore <= 30
-            ? "healthy"
-            : riskScore <= 60
-              ? "mild-concern"
-              : "high-risk",
-        confidence: avgConfidence,
-        voiceMarkers: [
-          {
-            name: "Dementia Signal Confidence",
-            value: `${Math.round(avgConfidence * 100)}%`,
-            status: riskScore > 60 ? "Elevated" : "Normal",
-            reference: "Lower is better",
-          },
-        ],
-        recommendations:
-          riskScore <= 30
-            ? [
-                "Continue regular screenings",
-                "Healthy cognitive function observed",
-              ]
-            : riskScore <= 60
-              ? [
-                  "Schedule follow-up in 2 weeks",
-                  "Consider neuropsych evaluation",
-                ]
-              : [
-                  "Urgent neurological referral recommended",
-                  "Comprehensive assessment needed",
-                ],
-        aiInsights: {
-          riskLevel:
-            riskScore <= 30 ? "Low" : riskScore <= 60 ? "Moderate" : "High",
-          audioAnalysis:
-            "Fallback analysis used because AI report service was unavailable.",
-          behavioralAnalysis:
-            "Behavioral interpretation unavailable in fallback mode.",
-          combinedInterpretation:
-            "Please retry report generation when backend service is available.",
-          recommendation: "Use this fallback result as provisional only.",
-        },
-        generatedAt: new Date().toISOString(),
-        sessionId: activeSession.id,
-        patientId: activeSession.patientId,
-      };
+    } catch (error) {
+      console.error("Failed to generate AI report", error);
+      throw error;
     }
   }, [activeSession]);
 

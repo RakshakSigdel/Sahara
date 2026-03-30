@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://0.0.0.0:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_AI_API_BASE_URL || "http://localhost:8000";
 
 function splitRecommendations(recommendationText) {
   if (!recommendationText || typeof recommendationText !== "string") return [];

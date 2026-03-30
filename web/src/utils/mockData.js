@@ -1,11 +1,11 @@
 ﻿/* ═══════════════════════════════════════════
-   Mock Data — Doctor-Centric Sahara
+  Mock Data — Doctor-Centric Bhul Rakshak
    ═══════════════════════════════════════════ */
 
 // ── Doctor ──
 export const mockDoctor = {
   id: 'doc_001',
-  email: 'dr.sharma@Sahara.health',
+  email: 'dr.sharma@bhulrakshak.health',
   fullName: 'Dr. Anita Sharma',
   specialty: 'Neurology',
   license: 'NMC-2019-4572',

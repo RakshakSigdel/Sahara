@@ -1,4 +1,4 @@
-# Sahara — AI Voice Cognitive Screening Platform
+# Bhul Rakshak — AI Voice Cognitive Screening Platform
 
 > A modern, accessible web application for voice-based cognitive health screening using AI analysis.
 

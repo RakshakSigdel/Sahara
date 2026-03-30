@@ -90,7 +90,7 @@ export default function ConsentPage() {
                 <div>
                   <h4 className="text-sm font-bold text-navy-dark mb-1">Important Disclaimer</h4>
                   <p className="text-xs text-text-secondary leading-relaxed">
-                    Sahara is a screening tool only. It is not a medical diagnosis. Always consult a qualified healthcare
+                    Bhul Rakshak is a screening tool only. It is not a medical diagnosis. Always consult a qualified healthcare
                     professional for medical advice. If you are experiencing a medical emergency, please call emergency services immediately.
                   </p>
                 </div>

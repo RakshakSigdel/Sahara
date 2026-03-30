@@ -4,13 +4,13 @@ const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(() => {
-    const stored = localStorage.getItem('Sahara_theme');
+    const stored = localStorage.getItem('BhulRakshak_theme');
     return stored === 'dark';
   });
 
   const [accessibility, setAccessibility] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('Sahara_a11y') || '{}');
+      return JSON.parse(localStorage.getItem('BhulRakshak_a11y') || '{}');
     } catch { return {}; }
   });
 
@@ -22,11 +22,11 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('Sahara_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('BhulRakshak_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
   useEffect(() => {
-    localStorage.setItem('Sahara_a11y', JSON.stringify(accessibility));
+    localStorage.setItem('BhulRakshak_a11y', JSON.stringify(accessibility));
     document.documentElement.classList.toggle('large-text', a11y.largeText);
     document.documentElement.classList.toggle('high-contrast', a11y.highContrast);
     document.documentElement.classList.toggle('reduce-motion', a11y.reduceAnimations);

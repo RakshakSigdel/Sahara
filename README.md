@@ -1,6 +1,6 @@
-# Sahara — AI-Powered Dementia Screening
+# Bhul Rakshak — AI-Powered Dementia Screening
 
-Sahara is a voice-based dementia screening platform for clinical use. Doctors record short patient voice sessions, which are analyzed by a fine-tuned Wav2Vec audio classifier, then synthesized into a structured risk report by Google Gemini.
+Bhul Rakshak is a voice-based dementia screening platform for clinical use. Doctors record short patient voice sessions, which are analyzed by a fine-tuned Wav2Vec audio classifier, then synthesized into a structured risk report by Google Gemini.
 
 ---
 
@@ -40,7 +40,7 @@ Sahara is a voice-based dementia screening platform for clinical use. Doctors re
 
 ```bash
 git clone <repo-url>
-cd EchoMind
+cd BhulRakshak
 ```
 
 ### 2 — Backend setup
@@ -169,7 +169,7 @@ Generates a structured clinical risk report from audio results and Q&A responses
 ## Project Structure
 
 ```
-EchoMind/
+BhulRakshak/
 ├── Dementia_API/
 │   ├── main.py              # FastAPI app — /predict + /report endpoints
 │   ├── requirements.txt     # Python dependencies

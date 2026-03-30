@@ -40,7 +40,7 @@ function DoctorIllustration() {
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="w-full max-w-md mx-auto mt-12">
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/15 text-left">
-            <p className="text-white/80 text-sm italic leading-relaxed">&ldquo;Sahara detected subtle speech pattern changes 18 months before clinical diagnosis. An invaluable screening tool.&rdquo;</p>
+            <p className="text-white/80 text-sm italic leading-relaxed">&ldquo;Bhul Rakshak detected subtle speech pattern changes 18 months before clinical diagnosis. An invaluable screening tool.&rdquo;</p>
             <p className="text-white/50 text-xs mt-3">— Dr. Patel, Neurologist, Stanford Medical</p>
           </div>
         </motion.div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-[420px]">
           <Link to="/" className="inline-flex items-center gap-2.5 mb-10 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-deep-teal to-deep-teal-light flex items-center justify-center text-white shadow-sm group-hover:shadow-glow transition-shadow"><Brain size={20} /></div>
-            <div><span className="text-xl font-bold"><span className="text-navy-dark">Echo</span><span className="text-deep-teal">Mind</span></span><p className="text-[9px] text-text-muted -mt-0.5">for Healthcare Professionals</p></div>
+            <div><span className="text-xl font-bold"><span className="text-navy-dark">Bhul</span><span className="text-deep-teal"> Rakshak</span></span><p className="text-[9px] text-text-muted -mt-0.5">for Healthcare Professionals</p></div>
           </Link>
 
           <h1 className="text-3xl font-bold text-navy-dark tracking-tight">Welcome Back, Doctor</h1>

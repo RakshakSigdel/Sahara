@@ -35,8 +35,8 @@ function Footer() {
                 <Brain size={16} />
               </div>
               <span className="text-lg font-bold tracking-tight">
-                <span className="text-navy-dark">Sah</span>
-                <span className="text-deep-teal">ara</span>
+                <span className="text-navy-dark">Bhul</span>
+                <span className="text-deep-teal"> Rakshak</span>
               </span>
             </Link>
             <p className="text-sm text-text-muted leading-relaxed max-w-xs">
@@ -126,14 +126,14 @@ function Footer() {
             <strong className="font-semibold text-text-muted">
               Disclaimer:
             </strong>{" "}
-            Sahara is a screening tool and is not a substitute for professional
+            Bhul Rakshak is a screening tool and is not a substitute for professional
             medical advice, diagnosis, or treatment. Always seek the advice of a
             qualified healthcare provider. If you are in crisis, contact your
             local emergency services immediately.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-[11px] text-text-muted/50">
-              © {new Date().getFullYear()} Sahara. All rights reserved.
+              © {new Date().getFullYear()} Bhul Rakshak. All rights reserved.
             </p>
             <p className="text-[11px] text-text-muted/40">
               Made with care for families everywhere.

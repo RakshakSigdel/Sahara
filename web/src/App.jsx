@@ -160,7 +160,7 @@ export default function App() {
               <PT>
                 <Placeholder
                   title="Platform Demo"
-                  desc="Experience the Sahara screening flow."
+                  desc="Experience the Bhul Rakshak screening flow."
                 />
               </PT>
             }

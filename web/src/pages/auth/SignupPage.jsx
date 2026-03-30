@@ -218,15 +218,15 @@ export default function SignupPage() {
             </div>
             <div>
               <span className="text-xl font-bold">
-                <span className="text-navy-dark">Echo</span>
-                <span className="text-deep-teal">Mind</span>
+                <span className="text-navy-dark">Bhul</span>
+                <span className="text-deep-teal"> Rakshak</span>
               </span>
               <p className="text-[9px] text-text-muted -mt-0.5">for Healthcare Professionals</p>
             </div>
           </Link>
 
           <h1 className="text-2xl font-bold text-navy-dark tracking-tight">Create Your Clinical Account</h1>
-          <p className="mt-1 text-sm text-text-secondary">Instant access to the Sahara professional suite</p>
+          <p className="mt-1 text-sm text-text-secondary">Instant access to the Bhul Rakshak professional suite</p>
 
           <div className="flex items-center gap-3 mt-5 mb-6">
             <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">

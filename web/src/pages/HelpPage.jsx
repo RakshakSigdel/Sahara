@@ -46,7 +46,7 @@ const guides = [
   {
     id: 'questions', icon: FileText, title: 'Question Bank', description: 'Customize your assessment questions',
     steps: [
-      { title: 'Default questions', desc: 'Sahara includes 32 clinically validated questions across four categories: Memory, Cognition, Language, and Orientation.' },
+      { title: 'Default questions', desc: 'Bhul Rakshak includes 32 clinically validated questions across four categories: Memory, Cognition, Language, and Orientation.' },
       { title: 'Custom questions', desc: 'Add your own questions via Questions → Add Custom Question. Specify the category, difficulty, expected duration, and optional follow-up prompts.' },
       { title: 'Building sets', desc: 'When starting a session, you can select the standard 10-question set or pick specific questions (up to 10) from the full bank.' },
     ],
@@ -63,9 +63,9 @@ const guides = [
 ];
 
 const faqs = [
-  { q: 'How accurate is the voice analysis?', a: 'Sahara achieves 98% diagnostic accuracy in clinical trials, validated against standard neuropsychological batteries (MMSE, MoCA). However, it is a screening tool — not a diagnostic instrument. Always correlate with clinical evaluation.' },
+  { q: 'How accurate is the voice analysis?', a: 'Bhul Rakshak achieves 98% diagnostic accuracy in clinical trials, validated against standard neuropsychological batteries (MMSE, MoCA). However, it is a screening tool — not a diagnostic instrument. Always correlate with clinical evaluation.' },
   { q: 'Is my patient data HIPAA compliant?', a: 'Yes. All data is encrypted end-to-end (AES-256) and stored in SOC 2 Type II compliant data centers. We provide a signed Business Associate Agreement (BAA) for all professional accounts.' },
-  { q: 'Can I use Sahara for telehealth?', a: 'Yes. Sessions can be conducted in-office, via telehealth, or during home visits. For telehealth, ensure the patient has a quiet environment and stable internet connection for best results.' },
+  { q: 'Can I use Bhul Rakshak for telehealth?', a: 'Yes. Sessions can be conducted in-office, via telehealth, or during home visits. For telehealth, ensure the patient has a quiet environment and stable internet connection for best results.' },
   { q: 'How long does a typical session take?', a: 'The standard 10-question assessment takes 2–3 minutes of active recording time, plus ~1 minute for AI analysis. Total appointment time is typically 5–10 minutes including setup.' },
   { q: 'Can I customize the question set?', a: 'Absolutely. You can use the standard clinically validated set, or build custom sets from 32+ questions in the question bank. You can also add your own questions.' },
   { q: 'What happens to voice recordings?', a: 'Voice recordings are processed for analysis and can be retained for clinical records. You control data retention settings in your privacy preferences. Recordings can be downloaded or deleted at any time.' },
@@ -91,7 +91,7 @@ export default function HelpPage() {
       {/* Header */}
       <motion.div variants={stagger.item} className="text-center max-w-2xl mx-auto">
         <h1 className="text-2xl lg:text-3xl font-bold text-navy-dark mb-2">Help & Documentation</h1>
-        <p className="text-text-secondary mb-6">Everything you need to know about using Sahara</p>
+        <p className="text-text-secondary mb-6">Everything you need to know about using Bhul Rakshak</p>
         <div className="relative max-w-md mx-auto">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search help articles, guides, FAQs…"
@@ -170,7 +170,7 @@ export default function HelpPage() {
         <div className="grid sm:grid-cols-3 gap-4">
           {[
             { icon: <MessageCircle size={20} />, title: 'Live Chat', desc: 'Chat with our support team', action: 'Start Chat' },
-            { icon: <Mail size={20} />, title: 'Email Support', desc: 'support@Sahara.health', action: 'Send Email' },
+            { icon: <Mail size={20} />, title: 'Email Support', desc: 'support@bhulrakshak.health', action: 'Send Email' },
             { icon: <Phone size={20} />, title: 'Phone Support', desc: 'Mon-Fri 9am-6pm EST', action: 'Call Now' },
           ].map((c) => (
             <div key={c.title} className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">

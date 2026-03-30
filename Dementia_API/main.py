@@ -6,6 +6,7 @@ import torch
 from dotenv import load_dotenv
 from typing import List
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from transformers import AutoModelForAudioClassification, AutoFeatureExtractor, pipeline
@@ -27,6 +28,14 @@ if not API_KEY:
 # -----------------------
 
 app = FastAPI(title="Dementia Detection API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"] ,
+    allow_headers=["*"],
+)
 
 
 # -----------------------

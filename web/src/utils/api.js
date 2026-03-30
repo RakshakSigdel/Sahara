@@ -1,5 +1,5 @@
 ﻿/* ═══════════════════════════════════════════
-   Mock API — Doctor-Centric Sahara
+  Mock API — Doctor-Centric Bhul Rakshak
    ═══════════════════════════════════════════ */
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));

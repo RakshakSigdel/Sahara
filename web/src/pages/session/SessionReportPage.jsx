@@ -208,7 +208,7 @@ export default function SessionReportPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-navy-dark">
-              Sahara Assessment Report
+              Bhul Rakshak Assessment Report
             </h1>
             <p className="text-xs text-text-muted">Report ID: {sessionId}</p>
           </div>
@@ -554,7 +554,7 @@ export default function SessionReportPage() {
         className="text-center text-xs text-text-muted space-y-1 pb-8"
       >
         <p>Generated: {new Date().toLocaleString()}</p>
-        <p>Report ID: {sessionId} • Sahara v2.0</p>
+        <p>Report ID: {sessionId} • Bhul Rakshak v2.0</p>
       </motion.div>
     </motion.div>
   );

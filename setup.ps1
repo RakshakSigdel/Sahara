@@ -1,4 +1,4 @@
-# Sahara — Automated Setup Script (Windows / PowerShell)
+# Bhul Rakshak — Automated Setup Script (Windows / PowerShell)
 # Run from the repo root: .\setup.ps1
 
 $ErrorActionPreference = "Stop"
@@ -6,7 +6,7 @@ $Root = $PSScriptRoot
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Sahara — Setup" -ForegroundColor Cyan
+Write-Host "  Bhul Rakshak — Setup" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
